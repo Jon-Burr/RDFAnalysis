@@ -17,6 +17,7 @@ namespace RDFAnalysis {
 
         Iterator begin() const { return m_begin; }
         Iterator end() const { return m_end; }
+        std::size_t size() const { return std::distance(begin(), end() ); }
       private:
         const Iterator m_begin;
         const Iterator m_end;
