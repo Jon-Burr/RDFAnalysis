@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
   bool overwrite{false};
   std::string sysListFile;
   std::vector<std::string> inputFiles;
+  std::string inTxt;
   namespace po = boost::program_options;
   po::options_description desc("Allowed options");
   desc.add_options()
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
     ("nEvents,n", po::value(&nEvents)->default_value(-1), "The number of events over which to run. -1 will run all available events")
     ("output,o", po::value(&output)->default_value("hist-out.root"), "The output ROOT file")
     ("overwrite,w", po::bool_switch(&overwrite), "Enable overwriting of the output file")
+    ("inTxt,I", po::value(&inTxt), "Text file containing inputs")
     ("help,h", "Print this message and exit");
   po::options_description hidden("Hidden options");
   hidden.add_options()
@@ -51,6 +53,17 @@ int main(int argc, char* argv[]) {
   if (vm.count("help") ) {
     std::cout << desc << std::endl;
     return 0;
+  }
+  if (!inTxt.empty() ) {
+    std::string line;
+    std::ifstream inTxtFin(inTxt);
+    if (!inTxtFin.is_open() ) {
+      std::cerr << "Failed to open input text file " << inTxt << std::endl;
+      return 1;
+    }
+    while (std::getline(inTxtFin, line) )
+      if (!line.empty() )
+        inputFiles.push_back(line);
   }
   TChain input(treeName.c_str() );
   for (const std::string& fin : inputFiles)
@@ -119,7 +132,7 @@ int main(int argc, char* argv[]) {
   outputWriter.addWriter(RDFAnalysis::TObjectWriter() );
   std::cout << "Trigger run" << std::endl;
   root->rootRNode().Foreach(
-      [nEvents = input.GetEntries()] (uint64_t entry) {
+      [nEvents = input.GetEntries()] (ULong64_t entry) {
         if (entry%5000 == 0) 
           std::cout << entry << "/" << nEvents << std::endl;
       }, {"rdfentry_"});
