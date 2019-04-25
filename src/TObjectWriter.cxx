@@ -19,7 +19,7 @@ namespace RDFAnalysis {
     // Skip over anonymous nodes
     if (node.isAnonymous() )
       return;
-    if (!m_subDirName.empty() )
+    if (!m_subDirName.empty() && node.objects().size() > 0)
       directory = getMkdir(directory, m_subDirName);
     // Loop over each object and save them
     for (SysResultPtr<TObject>& object : node.objects() ) {
