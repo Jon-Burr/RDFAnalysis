@@ -15,6 +15,7 @@ addons:
       - doxygen
 
 script:
+  - cd doxygen
   - doxygen Doxyfile
 
 deploy:
