@@ -23,7 +23,6 @@ namespace RDFAnalysis {
       /// Typedefs
       using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
 
-      /// TODO - make it possible to do the string expressions...
       /**
        * @brief Define a new variable on this node
        * @tparam F The functor type
@@ -119,7 +118,6 @@ namespace RDFAnalysis {
        * Note that right now this won't work if T doesn't inherit from TH1. TODO
        * fix this! 
        */
-      // TODO - version that doesn't use RInferredType?
       template <typename T>
         SysResultPtr<T> Fill(
             const T& model,
