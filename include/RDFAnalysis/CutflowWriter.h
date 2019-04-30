@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <map>
-#include "RTypes.h"
+#include "Rtypes.h"
 
 class TH1;
 
