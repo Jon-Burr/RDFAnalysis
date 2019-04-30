@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include <TDirectory.h>
+#include <ROOT/RDataFrame.hxx>
 
 namespace RDFAnalysis {
   /// Helper class to allow iterating through a container without allowing
@@ -49,6 +50,24 @@ namespace RDFAnalysis {
     if (!newDir && doThrow)
       throw std::runtime_error("Failed to get/make directory " + name);
     return newDir;
+  }
+
+  template <typename Map>
+    typename Map::mapped_type getDefaultKey(
+        const Map& theMap,
+        const typename Map::key_type& key,
+        const typename Map::key_type& defaultKey)
+    {
+      auto itr = theMap.find(key);
+      if (itr == theMap.end() )
+        return theMap.at(defaultKey);
+      else
+        return itr->second;
+    }
+
+  inline unsigned int getNSlots() {
+    unsigned int poolSize = ROOT::GetImplicitMTPoolSize();
+    return poolSize == 0 ? 1 : poolSize;
   }
 
 }; //> end namespace RDFAnalysis

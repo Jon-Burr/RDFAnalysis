@@ -26,7 +26,9 @@ target_sources( RDFAnalysis
       src/Node.cxx
       src/OutputWriter.cxx
       src/TObjectWriter.cxx
+      src/CutflowWriter.cxx
       src/IBranchNamer.cxx
+      src/NodeStatistics.cxx
     )
 
 # Link ROOT
@@ -89,6 +91,24 @@ target_include_directories( monohbb
       ${Boost_INCLUDE_DIRS}
     )
 target_link_libraries( monohbb
+    PRIVATE
+      RDFAnalysis
+      ${ROOT_LIBRARIES}
+      ${Boost_LIBRARIES}
+    )
+
+add_executable( jetres )
+target_sources( jetres
+    PRIVATE
+      util/jetres.cxx
+    )
+target_include_directories( jetres
+    PRIVATE
+      include
+      ${ROOT_INCLUDE_DIRS}
+      ${Boost_INCLUDE_DIRS}
+    )
+target_link_libraries( jetres
     PRIVATE
       RDFAnalysis
       ${ROOT_LIBRARIES}

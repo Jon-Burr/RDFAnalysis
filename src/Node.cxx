@@ -1,5 +1,6 @@
 // package includes
 #include "RDFAnalysis/Node.h"
+#include "RDFAnalysis/Helpers.h"
 #include <iostream>
 
 namespace RDFAnalysis {
@@ -105,9 +106,17 @@ namespace RDFAnalysis {
     m_namer(std::move(namer) ),
     m_name(name),
     m_cutflowName(cutflowName),
-    m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) )
+    m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
+    m_stats(m_namer->nominalName() ),
+    m_weightedStats(m_namer->nominalName() )
   {
     m_namer->setNode(*this, true);
+    m_stats.addResult(
+        m_namer->nominalName(), 
+        m_rnodes.at(m_namer->nominalName() ).Book(
+          NodeStatistics(
+            std::make_shared<ULong64_t>(),
+            getNSlots() ) ) );
   }
 
   Node::Node(
@@ -119,9 +128,19 @@ namespace RDFAnalysis {
     m_namer(parent.namer().copy() ),
     m_name(name),
     m_cutflowName(cutflowName),
-    m_rootRNode(parent.m_rootRNode)
+    m_rootRNode(parent.m_rootRNode),
+    m_stats(m_namer->nominalName() ),
+    m_weightedStats(m_namer->nominalName() )
   {
     m_namer->setNode(*this, false);
+    for (auto& nodePair : m_rnodes) {
+      m_stats.addResult(
+          nodePair.first,
+          nodePair.second.Book(
+            NodeStatistics(
+              std::make_shared<ULong64_t>(),
+              getNSlots() ) ) );
+    }
   }
 
   std::shared_ptr<Node> createROOT(

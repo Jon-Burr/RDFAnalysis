@@ -27,7 +27,7 @@ namespace RDFAnalysis {
          * @param The RResultPtr
          */
         template <typename U, 
-                 typename = std::enable_if_t<std::is_base_of<T, U>{}, void>>
+                 typename = std::enable_if_t<std::is_base_of<T, U>{} || std::is_same<T, U>{}, void>>
           /* ResultWrapper(const ROOT::RDF::RResultPtr<U>& ptr) : */
           ResultWrapper(ROOT::RDF::RResultPtr<U> ptr) :
             m_holder([ptr] () mutable -> T* {return ptr.GetPtr();}) {}

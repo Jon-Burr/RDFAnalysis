@@ -27,9 +27,10 @@ namespace RDFAnalysis {
       std::size_t depth)
   {
     directory->cd();
-    // Apply all of our writers
-    for (std::shared_ptr<INodeWriter>& writer : m_writers)
-      writer->write(node, directory, depth);
+    // Apply all of our writers - writers are not applied to anonymous nodes!
+    if (!node.isAnonymous() )
+      for (std::shared_ptr<INodeWriter>& writer : m_writers)
+        writer->write(node, directory, depth);
 
     // Now go through all of this node's children
     for (std::shared_ptr<Node>& child : node.children() ) {

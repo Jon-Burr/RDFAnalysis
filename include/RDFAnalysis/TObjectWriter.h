@@ -30,6 +30,7 @@ namespace RDFAnalysis {
           Node& node,
           TDirectory* directory,
           std::size_t /* depth */) override;
+
     private:
       /// The subdirectory name
       std::string m_subDirName;

@@ -43,7 +43,7 @@ namespace RDFAnalysis {
          * @return if a new result was provided
          */ 
         // TODO (maybe) - make it impossible to overwrite a result with this
-        // method
+        // method, or rather to make it throw an error if you try...
         bool addResult(
             const std::string& systematic,
             const ResultWrapper<T>& result)

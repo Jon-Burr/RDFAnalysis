@@ -7,6 +7,7 @@
 #include <ROOT/RDFHelpers.hxx>
 #include "RDFAnalysis/OutputWriter.h"
 #include "RDFAnalysis/TObjectWriter.h"
+#include "RDFAnalysis/CutflowWriter.h"
 #include "RDFAnalysis/DefaultBranchNamer.h"
 #include <boost/algorithm/string/join.hpp>
 #include <fstream>
@@ -130,6 +131,7 @@ int main(int argc, char* argv[]) {
 
   RDFAnalysis::OutputWriter outputWriter(output, overwrite);
   outputWriter.addWriter(RDFAnalysis::TObjectWriter() );
+  outputWriter.addWriter(RDFAnalysis::CutflowWriter() );
   std::cout << "Trigger run" << std::endl;
   root->rootRNode().Foreach(
       [nEvents = input.GetEntries()] (ULong64_t entry) {

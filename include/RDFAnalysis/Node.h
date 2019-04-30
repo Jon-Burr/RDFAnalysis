@@ -5,6 +5,7 @@
 #include "RDFAnalysis/IBranchNamer.h"
 #include "RDFAnalysis/Helpers.h"
 #include "RDFAnalysis/SysResultPtr.h"
+#include "RDFAnalysis/NodeStatistics.h"
 
 // ROOT includes
 #include "ROOT/RDataFrame.hxx"
@@ -147,13 +148,21 @@ namespace RDFAnalysis {
       Node(Node&&) = default;
 
 
-      /// Allow access to iterate over the children 
+      /// Allow access to iterate over the child nodes
       auto children() { return as_range(m_children); }
+      /// Allow (const) access to iterate over the child nodes
       auto children() const { return as_range(m_children); }
 
       /// Iterate over the objects defined on this
       auto objects() { return as_range(m_objects); }
+      /// (Const) iterate over all the objects defined on this
       auto objects() const { return as_range(m_objects); }
+
+      /// Get the node statistics
+      SysResultPtr<NodeStatistics::Result_t> stats() { return m_stats; }
+      /// Get the weighted statistics
+      SysResultPtr<WeightedNodeStatistics::Result_t> weightedStats()
+      { return m_weightedStats; }
 
       /// Get the parent of this node
       Node* getParent() { return m_parent; }
@@ -217,6 +226,12 @@ namespace RDFAnalysis {
 
       /// Any TObject pointers declared on this
       std::vector<SysResultPtr<TObject>> m_objects;
+
+      /// The node statistics
+      SysResultPtr<NodeStatistics::Result_t> m_stats;
+
+      /// The node statistics (including weights)
+      SysResultPtr<WeightedNodeStatistics::Result_t> m_weightedStats;
   }; //> end class Node
 
   /**

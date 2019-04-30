@@ -16,9 +16,6 @@ namespace RDFAnalysis {
       TDirectory* directory,
       std::size_t /* depth */)
   {
-    // Skip over anonymous nodes
-    if (node.isAnonymous() )
-      return;
     if (!m_subDirName.empty() && node.objects().size() > 0)
       directory = getMkdir(directory, m_subDirName);
     // Loop over each object and save them
