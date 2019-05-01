@@ -25,8 +25,9 @@ namespace RDFAnalysis {
     auto result = node.stats();
     m_cutflow.emplace_back();
     for (auto& p : result.asMap() ) {
+      TDirectory* systDir = getMkdir(directory, p.first);
       m_cutflow.back()[p.first] = std::make_pair(node.cutflowName(), *p.second.get() );
-      TH1F cutflowHist(p.first.c_str(), "Cutflow", m_cutflow.size(), 0, m_cutflow.size() );
+      TH1F cutflowHist("Cutflow", "Cutflow", m_cutflow.size(), 0, m_cutflow.size() );
       // Fill backwards
       for (std::size_t idx = m_cutflow.size(); idx > 0; --idx) {
         const auto& entry = getDefaultKey(
@@ -35,7 +36,26 @@ namespace RDFAnalysis {
         cutflowHist.SetBinError(idx, sqrt(entry.second) );
         cutflowHist.GetXaxis()->SetBinLabel(idx, entry.first.c_str() );
       }
-      directory->WriteTObject(&cutflowHist);
+      systDir->WriteTObject(&cutflowHist);
+    }
+    // Now do the same for the weighted cutflow
+    if (m_weightedCutflow.size() > depth)
+      m_weightedCutflow.resize(depth);
+    auto weightedResult = node.weightedStats();
+    m_weightedCutflow.emplace_back();
+    for (auto& p : weightedResult.asMap() ) {
+      TDirectory* systDir = getMkdir(directory, p.first);
+      m_weightedCutflow.back()[p.first] = std::make_pair(node.cutflowName(), *p.second.get() );
+      TH1F cutflowHist("WeightedCutflow", "WeightedCutflow", m_cutflow.size(), 0, m_cutflow.size() );
+      // Fill backwards
+      for (std::size_t idx = m_weightedCutflow.size(); idx > 0; --idx) {
+        const auto& entry = getDefaultKey(
+            m_weightedCutflow[idx-1], p.first, node.namer().nominalName() );
+        cutflowHist.SetBinContent(idx, entry.second.first);
+        cutflowHist.SetBinError(idx, sqrt(entry.second.second) );
+        cutflowHist.GetXaxis()->SetBinLabel(idx, entry.first.c_str() );
+      }
+      systDir->WriteTObject(&cutflowHist);
     }
   }
 } //> end namespace RDFAnalysis

@@ -111,6 +111,60 @@ namespace RDFAnalysis {
           const std::string& cutflowName = "");
 
       /**
+       * @brief Set the weight on this node
+       * @tparam F the functor type
+       * @param f The functor
+       * @param columns The input columns to \ref f (if any)
+       * @param multiplicative Whether to multiply by the weight (if any) set on
+       * the previous node.
+       * @return shared pointer to this
+       * The new weight will be calculated and stored in a new branch.
+       */
+      template <typename F>
+        std::enable_if_t<!std::is_convertible<F, std::string>{},
+        std::shared_ptr<Node>> setWeight(
+            F f,
+            const ColumnNames_t& columns = {},
+            bool multiplicative = true);
+
+      /**
+       * @brief Set the weight on this node
+       * @param expression The expression to calculate the weight
+       * @param multiplicative Whether to multiply by the weight (if any) set on
+       * the previous node.
+       * @return shared pointer to this
+       * The new weight will be calculated and stored in a new branch.
+       */
+      std::shared_ptr<Node> setWeight(
+          const std::string& expression,
+          bool multiplicative = true);
+
+      /**
+       * @brief Set the weight on this node
+       * @param expression The expression to calculate the weight
+       * @param columns The input variables to the expression
+       * @param multiplicative Whether to multiply by the weight (if any) set on
+       * the previous node.
+       * @return shared pointer to this
+       * The new weight will be calculated and stored in a new branch.
+       * The expression should have the column names replaced by placeholders
+       * like {idx} (where idx is the index of the branch in the columns
+       * vector).
+       */
+      std::shared_ptr<Node> setWeight(
+          const std::string& expression,
+          const ColumnNames_t& columns,
+          bool multiplicative = true);
+
+      /**
+       * @brief Get the name of the weight branch.
+       * The name returned will be the base name, not resolved for any
+       * systematic variation. If there is no weight set the empty string will
+       * be returned.
+       */
+      const std::string& getWeight() const { return m_weight; }
+
+      /**
        * @brief Fill an object on each event
        * @tparam T The type of object to be filled.
        * @param model The 'model' object to fill.
@@ -171,7 +225,7 @@ namespace RDFAnalysis {
       /// Is the node the root?
       bool isRoot() const { return m_parent == nullptr; }
 
-    protected:
+    private:
       friend std::shared_ptr<Node> createROOT(
           const RNode&,
           std::unique_ptr<IBranchNamer>,
@@ -203,6 +257,12 @@ namespace RDFAnalysis {
           const std::string& name,
           const std::string& cutflowName);
 
+      /// Internal function to name the weight branch
+      std::string nameWeight();
+
+      /// Internal function to setup the weighted statistics
+      void setupWeightedStatistics();
+
       /// The parent of this node
       Node* m_parent = nullptr;
 
@@ -232,6 +292,9 @@ namespace RDFAnalysis {
 
       /// The node statistics (including weights)
       SysResultPtr<WeightedNodeStatistics::Result_t> m_weightedStats;
+
+      /// The weight on this node
+      std::string m_weight;
   }; //> end class Node
 
   /**

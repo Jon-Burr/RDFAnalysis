@@ -16,13 +16,13 @@ namespace RDFAnalysis {
       TDirectory* directory,
       std::size_t /* depth */)
   {
-    if (!m_subDirName.empty() && node.objects().size() > 0)
-      directory = getMkdir(directory, m_subDirName);
+    /* if (!m_subDirName.empty() && node.objects().size() > 0) */
+    /*   directory = getMkdir(directory, m_subDirName); */
     // Loop over each object and save them
     for (SysResultPtr<TObject>& object : node.objects() ) {
       // Get the directory for each systematic and save that object there
       for (auto& objPair : object.asMap() ) {
-        TDirectory* systDir = getMkdir(directory, objPair.first);
+        TDirectory* systDir = getMkdir(directory, objPair.first+"/"+m_subDirName);
         systDir->WriteTObject(objPair.second.get() );
       }
     }

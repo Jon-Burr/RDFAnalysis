@@ -89,6 +89,7 @@ int main(int argc, char* argv[]) {
   auto root = RDFAnalysis::createROOT(
       ROOT::RDataFrame(input),
       std::make_unique<RDFAnalysis::DefaultBranchNamer>(systematics, true, false) );
+  root->setWeight("MCEventWeight*pileupWeight");
 
   root->Define("SelJetPt", "JetPt[JetIsSignal]").
     Define("SelJetEta", "JetEta[JetIsSignal]").

@@ -23,6 +23,9 @@ namespace RDFAnalysis {
         /// Allow access to the underlying map
         std::map<std::string, ResultWrapper<T>>& asMap() { return m_wrappers; }
 
+        /// Reset all results
+        void reset() { m_wrappers.clear(); }
+
         /**
          * @brief Get the result pointed to
          * @param systematic The variation to retrieve

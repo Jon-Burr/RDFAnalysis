@@ -91,6 +91,35 @@ namespace RDFAnalysis {
       return child;
     }
 
+  template <typename F>
+    std::enable_if_t<!std::is_convertible<F, std::string>{},
+    std::shared_ptr<Node>> Node::setWeight(
+        F f,
+        const ColumnNames_t& columns, 
+        bool multiplicative)
+    {
+      if (multiplicative && m_parent && !m_parent->getWeight().empty() ) {
+        // Adapt f to include the parent weight and call this function with the
+        // new functor and multiplicative set to false
+        ColumnNames_t newColumns = columns;
+        newColumns.push_back(m_parent->getWeight() );
+        return setWeight(
+            [f] (auto&&... args, const double& parentWeight) {
+              return parentWeight * f(std::forward<decltype(args)>(args)...);
+            },
+            newColumns,
+            false);
+      }
+      else {
+        m_weight = nameWeight();
+        // Define the new weight
+        Define(m_weight, f, columns);
+        // Reset the weighted node statistics
+        setupWeightedStatistics();
+      }
+      return shared_from_this();
+    }
+
   template <typename T>
     SysResultPtr<T> Node::Fill(
         const T& model,

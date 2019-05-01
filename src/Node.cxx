@@ -97,6 +97,54 @@ namespace RDFAnalysis {
     return child;
   }
 
+  std::shared_ptr<Node> Node::setWeight(
+      const std::string& expression,
+      bool multiplicative)
+  {
+    if (multiplicative && m_parent && !m_parent->getWeight().empty() ) {
+      // Adapt the expression to include the parent weight and then call this
+      // function again with the new expression and multiplicative set to false
+      return setWeight("("+expression+") * " + m_parent->getWeight(), false);
+    }
+    else if (m_namer->exists(expression) ) {
+      // For this version only, if the new weight is already a column, no need
+      // to recalculated it...
+      m_weight = expression;
+      setupWeightedStatistics();
+    }
+    else {
+      m_weight = nameWeight();
+      Define(m_weight, expression);
+      // Reset the weighted node statistics
+      setupWeightedStatistics();
+    }
+    return shared_from_this();
+  }
+
+  std::shared_ptr<Node> Node::setWeight(
+      const std::string& expression,
+      const ColumnNames_t& columns,
+      bool multiplicative)
+  {
+    if (multiplicative && m_parent && !m_parent->getWeight().empty() ) {
+      // Adapt the expression to include the parent weight and then call this
+      // function again with the new expression and multiplicative set to false
+      ColumnNames_t newColumns = columns;
+      newColumns.push_back(m_parent->getWeight() );
+      return setWeight(
+          "("+expression+") * {" + std::to_string(columns.size() ) + "}",
+          newColumns,
+          false);
+    }
+    else {
+      m_weight = nameWeight();
+      Define(m_weight, expression, columns);
+      // Reset the weighted node statistics
+      setupWeightedStatistics();
+    }
+    return shared_from_this();
+  }
+
   Node::Node(
       const RNode& rnode,
       std::unique_ptr<IBranchNamer> namer,
@@ -130,7 +178,8 @@ namespace RDFAnalysis {
     m_cutflowName(cutflowName),
     m_rootRNode(parent.m_rootRNode),
     m_stats(m_namer->nominalName() ),
-    m_weightedStats(m_namer->nominalName() )
+    m_weightedStats(m_namer->nominalName() ),
+    m_weight(parent.getWeight() )
   {
     m_namer->setNode(*this, false);
     for (auto& nodePair : m_rnodes) {
@@ -140,6 +189,44 @@ namespace RDFAnalysis {
             NodeStatistics(
               std::make_shared<ULong64_t>(),
               getNSlots() ) ) );
+    }
+    if (!m_weight.empty() )
+      setupWeightedStatistics();
+  }
+
+  std::string Node::nameWeight()
+  {
+    // Construct the name of the node by hashing the pointer
+    return "_NodeWeight_"+std::to_string(std::hash<Node*>()(this) )+"_";
+  }
+
+  void Node::setupWeightedStatistics()
+  {
+    // Clear out anything that was already there.
+    m_weightedStats.reset();
+    // Work out which systematics we care about
+    std::set<std::string> affecting = m_namer->systematicsAffecting(m_weight);
+
+    for (auto& rnodePair : m_rnodes) {
+      m_weightedStats.addResult(
+          rnodePair.first,
+          rnodePair.second.Book<float>(
+            WeightedNodeStatistics(
+              std::make_shared<WeightedNodeStatistics::Result_t>(),
+              getNSlots() ),
+            {m_namer->nameBranch(m_weight, rnodePair.first)}) );
+      affecting.erase(rnodePair.first);
+    }
+    RNode& nominalNode = m_rnodes.at(m_namer->nominalName() );
+    // For all the remaining systematics make them from the nominal
+    for (const std::string& syst : affecting) {
+      m_weightedStats.addResult(
+          syst,
+          nominalNode.Book<float>(
+            WeightedNodeStatistics(
+              std::make_shared<WeightedNodeStatistics::Result_t>(),
+              getNSlots() ),
+            {m_namer->nameBranch(m_weight, syst)}) );
     }
   }
 

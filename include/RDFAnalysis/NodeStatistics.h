@@ -43,10 +43,10 @@ namespace RDFAnalysis {
    * weights and the second the sum of weights squared.
    */
   class WeightedNodeStatistics :
-    public ROOT::Detail::RDF::RActionImpl<NodeStatistics> {
+    public ROOT::Detail::RDF::RActionImpl<WeightedNodeStatistics> {
     public:
       /// Declare the column types to RAction
-      using ColumnTypes_t = ROOT::TypeTraits::TypeList<>;
+      using ColumnTypes_t = ROOT::TypeTraits::TypeList<float>;
       /// Declare the output type to RAction
       using Result_t = std::pair<float, float>;
       /// Constructor
