@@ -5,7 +5,6 @@
 #include "RDFAnalysis/IBranchNamer.h"
 #include "RDFAnalysis/Helpers.h"
 #include "RDFAnalysis/SysResultPtr.h"
-#include "RDFAnalysis/NodeStatistics.h"
 
 // ROOT includes
 #include "ROOT/RDataFrame.hxx"
@@ -213,9 +212,9 @@ namespace RDFAnalysis {
       auto objects() const { return as_range(m_objects); }
 
       /// Get the node statistics
-      SysResultPtr<NodeStatistics::Result_t> stats() { return m_stats; }
+      SysResultPtr<ULong64_t> stats() { return m_stats; }
       /// Get the weighted statistics
-      SysResultPtr<WeightedNodeStatistics::Result_t> weightedStats()
+      SysResultPtr<std::pair<float, float>> weightedStats()
       { return m_weightedStats; }
 
       /// Get the parent of this node
@@ -288,10 +287,10 @@ namespace RDFAnalysis {
       std::vector<SysResultPtr<TObject>> m_objects;
 
       /// The node statistics
-      SysResultPtr<NodeStatistics::Result_t> m_stats;
+      SysResultPtr<ULong64_t> m_stats;
 
       /// The node statistics (including weights)
-      SysResultPtr<WeightedNodeStatistics::Result_t> m_weightedStats;
+      SysResultPtr<std::pair<float, float>> m_weightedStats;
 
       /// The weight on this node
       std::string m_weight;

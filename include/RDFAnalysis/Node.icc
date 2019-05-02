@@ -19,25 +19,18 @@ namespace RDFAnalysis {
       for (auto& rnode : m_rnodes) {
         // Remove this systematic from consideration
         affecting.erase(rnode.first);
-        std::vector<std::string> newColumns;
-        newColumns.reserve(columns.size() );
-        for (const std::string& branch : columns)
-          newColumns.push_back(m_namer->nameBranch(branch, rnode.first) );
         rnode.second = rnode.second.Define(
-            m_namer->nameBranch(name, rnode.first, true, true),
-            f, newColumns);
+            m_namer->createBranch(name, rnode.first, true),
+            f,
+            m_namer->nameBranches(columns, rnode.first) );
       }
       // Add any left over to the nominal
       RNode& nominal = m_rnodes.at(m_namer->nominalName());
-      for (const std::string& syst : affecting) {
-        std::vector<std::string> newColumns;
-        newColumns.reserve(columns.size() );
-        for (const std::string& branch : columns)
-          newColumns.push_back(m_namer->nameBranch(branch, syst) );
+      for (const std::string& syst : affecting)
         nominal = nominal.Define(
-            m_namer->nameBranch(name, syst, true, false),
-            f, newColumns);
-      }
+            m_namer->createBranch(name, syst, false),
+            f,
+            m_namer->nameBranches(columns, syst) );
       return *this;
     }
 
@@ -51,15 +44,11 @@ namespace RDFAnalysis {
     {
       // If this is going to make an anonymous node, make sure there aren't
       // other children
-      if (name.empty() && m_children.size() > 0)
-        throw std::runtime_error(
-            "Attempting to define an anonymous node on a node that already "
-            "has children. This is not allowed.");
-      // First, work out which systematics this affects
-      std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
-      // Make sure that we at least affect the nominal
-      if (affecting.size() == 0)
-        affecting.insert(m_namer->nominalName() );
+      for (const std::shared_ptr<Node>& child : m_children)
+        if (child->name() == name)
+          throw std::runtime_error(
+              "Attempting to create child " + name + " but this node " + 
+              "already has a node with that name!");
 
       // Make a child node
       // Note - use 'new' rather than make_unique as this is a protected
@@ -67,27 +56,29 @@ namespace RDFAnalysis {
       std::shared_ptr<Node> child(new Node(*this, name, cutflowName) );
       m_children.push_back(child);
 
+      // First, work out which systematics this affects
+      std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
+      // Make sure that we at least affect the nominal
+      if (affecting.size() == 0)
+        affecting.insert(m_namer->nominalName() );
+
       // Apply the filters to the child node
       for (auto& rnodePair : child->m_rnodes) {
-        std::vector<std::string> newColumns;
-        newColumns.reserve(columns.size() );
-        for (const std::string& branch : columns)
-          newColumns.push_back(m_namer->nameBranch(branch, rnodePair.first) );
-        rnodePair.second = rnodePair.second.Filter(f, newColumns, cutflowName);
+        rnodePair.second = rnodePair.second.Filter(
+            f,
+            m_namer->nameBranches(columns, rnodePair.first),
+            cutflowName);
         affecting.erase(rnodePair.first);
       }
 
       RNode& nominalNode = m_rnodes.at(m_namer->nominalName() );
       // Make new child rnodes for every remaining systematic
-      for (const std::string& syst : affecting) {
-        std::vector<std::string> newColumns;
-        newColumns.reserve(columns.size() );
-        for (const std::string& branch : columns)
-          newColumns.push_back(m_namer->nameBranch(branch, syst) );
-        // Create the new filters from this nodes nominal rnode.
+      for (const std::string& syst : affecting)
         child->m_rnodes.insert(std::make_pair(
-              syst, nominalNode.Filter(f, newColumns, cutflowName) ) );
-      }
+              syst, nominalNode.Filter(
+                f,
+                m_namer->nameBranches(columns, syst),
+                cutflowName) ) );
       return child;
     }
 
@@ -133,13 +124,11 @@ namespace RDFAnalysis {
       // Create the object from all of our rnodes first, erasing systematics as
       // we go
       for (auto& rnodePair : m_rnodes) {
-        std::vector<std::string> newColumns;
-        newColumns.reserve(columns.size() );
-        for (const std::string& branch : columns)
-          newColumns.push_back(m_namer->nameBranch(branch, rnodePair.first) );
         result.addResult(
             rnodePair.first,
-            rnodePair.second.Fill(T(model), newColumns) );
+            rnodePair.second.Fill(
+              T(model),
+              m_namer->nameBranches(columns) ) );
         affecting.erase(rnodePair.first);
       }
 
@@ -148,15 +137,12 @@ namespace RDFAnalysis {
 
       RNode& nominalNode = m_rnodes.at(m_namer->nominalName() );
       // For all the remaining systematics make them from the nominal
-      for (const std::string& syst : affecting) {
-        std::vector<std::string> newColumns;
-        newColumns.reserve(columns.size() );
-        for (const std::string& branch : columns)
-          newColumns.push_back(m_namer->nameBranch(branch, syst) );
+      for (const std::string& syst : affecting)
         result.addResult(
             syst,
-            nominalNode.Fill(T(model), newColumns) );
-      }
+            nominalNode.Fill(
+              T(model),
+              m_namer->nameBranches(columns) ) );
       // We won't write the contents of anonymous nodes so don't even keep them
       // here
       if (!isAnonymous() )

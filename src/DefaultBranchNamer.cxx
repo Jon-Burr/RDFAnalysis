@@ -23,8 +23,43 @@ namespace {
 namespace RDFAnalysis {
   std::string DefaultBranchNamer::nameBranch(
       const std::string& branch,
+      const std::string& systNameIn) const
+  {
+    std::string systName = systNameIn.empty() ? m_nominalName : systNameIn;
+    if (std::find(m_systematics.begin(), m_systematics.end(), systName)
+        == m_systematics.end() ) {
+      throw std::out_of_range("Unknown variation " + systName);
+    }
+    auto branchItr = m_branches.find(branch);
+    if (branchItr == m_branches.end() )
+      throw std::out_of_range(
+          "Branch " + branch + " requested but this branch does not exist!");
+    // Look for this variation of the branch
+    auto systItr = branchItr->second.find(systName);
+    if (systItr == branchItr->second.end() ) {
+      // If it doesn't exist, look for the nominal
+      systItr = branchItr->second.find(m_nominalName);
+      if (systItr == branchItr->second.end() )
+        throw std::out_of_range(
+            "No nominal variation exists for branch " + branch );
+    }
+    return systItr->second;
+  }
+
+  std::vector<std::string> DefaultBranchNamer::nameBranches(
+      const std::vector<std::string>& branches,
+      const std::string& systName) const
+  {
+    std::vector<std::string> out;
+    out.reserve(branches.size() );
+    for (const std::string& branch : branches)
+      out.push_back(nameBranch(branch, systName) );
+    return out;
+  }
+
+  std::string DefaultBranchNamer::createBranch(
+      const std::string& branch,
       const std::string& systNameIn,
-      bool create,
       bool isRNodeSys)
   {
     std::string systName = systNameIn.empty() ? m_nominalName : systNameIn;
@@ -34,32 +69,21 @@ namespace RDFAnalysis {
     }
     auto branchItr = m_branches.find(branch);
     if (branchItr == m_branches.end() ) {
-      if (create) {
-        std::string newBranch = newBranchName(branch, systName, isRNodeSys);
-        m_branches[branch][systName] = newBranch;
-        return newBranch;
-      }
-      else 
-        throw std::out_of_range(
-            "Branch " + branch + " requested but this branch does not exist!");
+      std::string newBranch = newBranchName(branch, systName, isRNodeSys);
+      m_branches[branch][systName] = newBranch;
+      return newBranch;
     }
     // Look for this variation of the branch
     auto systItr = branchItr->second.find(systName);
     if (systItr == branchItr->second.end() ) {
-      if (create) {
-        std::string newBranch = newBranchName(branch, systName, isRNodeSys);
-        branchItr->second[systName] = newBranch;
-        return newBranch;
-      }
-      else {
-        // If it doesn't exist, look for the nominal
-        systItr = branchItr->second.find(m_nominalName);
-        if (systItr == branchItr->second.end() )
-          throw std::out_of_range(
-              "No nominal variation exists for branch " + branch );
-      }
+      std::string newBranch = newBranchName(branch, systName, isRNodeSys);
+      branchItr->second[systName] = newBranch;
+      return newBranch;
     }
-    return systItr->second;
+    else 
+      throw std::runtime_error("Trying to create variation " + systName +
+          " of branch " + branch + " but this already exists!");
+    return "";
   }
 
   bool DefaultBranchNamer::exists(

@@ -28,23 +28,43 @@ namespace RDFAnalysis {
         m_systNameFirst(true),
         m_inputFromFriendTrees(true),
         m_nominalName(nominalName) {}
+
       /**
        * @brief Get the full name of a branch
        * @param branch The base name of the branch
        * @param systName The name of the variation
-       * @param create Whether to create the branch if it doesn't exist
-       * @param isRNodeSys If we're creating a branch, whether the ROOT::RNode
-       * it will be added to is specific to this systematic.
-       * If \ref create is false then the function will search for an existing
-       * branch. If one doesn't exist then it will return the nominal branch. If
-       * that doesn't exist it will throw a std::out_of_range exception. If \ref
-       * create is true then the branch will be created if this variation is
-       * missing.
+       * Search for a variation \ref systName on a branch \ref branch. If one
+       * doesn't exist then it will return the nominal branch. If that doesn't
+       * exist it will throw a std::out_of_range exception.
        */
       std::string nameBranch(
           const std::string& branch,
+          const std::string& systName = "") const override;
+
+      /**
+       * @brief Get the full names of a list of branches
+       * @param branches The base name of the branches
+       * @param systName The name of the variation
+       * Search for a variation \ref systName on a branch \ref branch. If one
+       * doesn't exist then it will return the nominal branch. If that doesn't
+       * exist it will throw a std::out_of_range exception.
+       */
+      std::vector<std::string> nameBranches(
+          const std::vector<std::string>& branches,
+          const std::string& systName = "") const override;
+
+      /**
+       * @brief Get the full name of a branch
+       * @param branch The base name of the branch
+       * @param systName The name of the variation
+       * @param isRNodeSys whether the ROOT::RNode the new branch will be added
+       * to is specific to this systematic.
+       * Create a new variation \systName of branch \ref branch. If this already
+       * exists then a std::runtime_error will be thrown.
+       */
+      std::string createBranch(
+          const std::string& branch,
           const std::string& systName = "",
-          bool create = false,
           bool isRNodeSys = false) override;
 
       /**

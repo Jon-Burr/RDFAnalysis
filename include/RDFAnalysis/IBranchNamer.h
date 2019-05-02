@@ -18,8 +18,15 @@ namespace RDFAnalysis {
 
       virtual std::string nameBranch(
           const std::string& branch,
+          const std::string& systName = "") const = 0;
+
+      virtual std::vector<std::string> nameBranches(
+          const std::vector<std::string>& branches,
+          const std::string& systName = "") const = 0;
+
+      virtual std::string createBranch(
+          const std::string& branch,
           const std::string& systName = "",
-          bool create = false,
           bool isRNodeSys = false) = 0;
 
       virtual bool exists(
