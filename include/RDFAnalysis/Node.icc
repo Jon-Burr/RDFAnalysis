@@ -42,43 +42,44 @@ namespace RDFAnalysis {
         const std::string& name,
         const std::string& cutflowName)
     {
-      // If this is going to make an anonymous node, make sure there aren't
-      // other children
+      // Make sure that there isn't already a node with this name
       for (const std::shared_ptr<Node>& child : m_children)
         if (child->name() == name)
           throw std::runtime_error(
-              "Attempting to create child " + name + " but this node " + 
+              "Attempting to create child '" + name + "' but this node " + 
               "already has a node with that name!");
-
-      // Make a child node
-      // Note - use 'new' rather than make_unique as this is a protected
-      // constructor
-      std::shared_ptr<Node> child(new Node(*this, name, cutflowName) );
-      m_children.push_back(child);
 
       // First, work out which systematics this affects
       std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
       // Make sure that we at least affect the nominal
       if (affecting.size() == 0)
         affecting.insert(m_namer->nominalName() );
-
-      // Apply the filters to the child node
-      for (auto& rnodePair : child->m_rnodes) {
-        rnodePair.second = rnodePair.second.Filter(
-            f,
-            m_namer->nameBranches(columns, rnodePair.first),
-            cutflowName);
+      
+      std::map<std::string, RNode> childRNodes;
+      for (auto& rnodePair : m_rnodes) {
+        childRNodes.insert(std::make_pair(
+              rnodePair.first, 
+              rnodePair.second.Filter(
+                f,
+                m_namer->nameBranches(columns, rnodePair.first),
+                cutflowName) ) );
         affecting.erase(rnodePair.first);
       }
 
       RNode& nominalNode = m_rnodes.at(m_namer->nominalName() );
-      // Make new child rnodes for every remaining systematic
       for (const std::string& syst : affecting)
-        child->m_rnodes.insert(std::make_pair(
-              syst, nominalNode.Filter(
+        childRNodes.insert(std::make_pair(
+              syst,
+              nominalNode.Filter(
                 f,
                 m_namer->nameBranches(columns, syst),
                 cutflowName) ) );
+      // Create the new child and add it
+      // Note - use 'new' rather than make_unique as this is a protected
+      // constructor
+      std::shared_ptr<Node> child(new Node(
+            *this, std::move(childRNodes),  name, cutflowName) );
+      m_children.push_back(child);
       return child;
     }
 

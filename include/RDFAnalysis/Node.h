@@ -248,11 +248,13 @@ namespace RDFAnalysis {
       /**
        * @brief Create a child node
        * @param parent The parent of this node
+       * @param rnodes This node's RNodes
        * @param name The name of this node
        * @param cutflowName How this node appears in cutflows
        */
       Node(
           Node& parent,
+          std::map<std::string, RNode>&& rnodes,
           const std::string& name,
           const std::string& cutflowName);
 

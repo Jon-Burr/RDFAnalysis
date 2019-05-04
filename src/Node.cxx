@@ -60,29 +60,27 @@ namespace RDFAnalysis {
       const std::string& name,
       const std::string& cutflowName)
   {
-    // If this is going to make an anonymous node, make sure there aren't
-    // other children
-    if (name.empty() && m_children.size() > 0)
-      throw std::runtime_error(
-          "Attempting to define an anonymous node on a node that already "
-          "has children. This is not allowed.");
+    // Make sure that there isn't already a node with this name
+    for (const std::shared_ptr<Node>& child : m_children)
+      if (child->name() == name)
+        throw std::runtime_error(
+            "Attempting to create child '" + name + "' but this node " + 
+            "already has a node with that name!");
+
+    std::map<std::string, RNode> childRNodes;
     // First, work out which systematics this affects
     std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
     // Make sure that we at least affect the nominal
     if (affecting.size() == 0)
       affecting.insert(m_namer->nominalName() );
 
-    // Make a child node
-    // Note - use 'new' rather than make_unique as this is a protected
-    // constructor
-    std::shared_ptr<Node> child(new Node(*this, name, cutflowName) );
-    m_children.push_back(child);
-
     // Apply the filters to the child node
-    for (auto& rnodePair : child->m_rnodes) {
+    for (auto& rnodePair : m_rnodes) {
       std::string systExpression = m_namer->interpretExpression(
         expression, columns, rnodePair.first);
-      rnodePair.second = rnodePair.second.Filter(systExpression, cutflowName);
+      childRNodes.insert(std::make_pair(
+            rnodePair.first,
+            rnodePair.second.Filter(systExpression, cutflowName) ) );
       affecting.erase(rnodePair.first);
     }
 
@@ -91,9 +89,17 @@ namespace RDFAnalysis {
     for (const std::string& syst : affecting) {
       std::string systExpression = m_namer->interpretExpression(
           expression, columns, syst);
-      child->m_rnodes.insert(std::make_pair(
-            syst, nominalNode.Filter(systExpression, cutflowName) ) );
+      childRNodes.insert(std::make_pair(
+            syst,
+            nominalNode.Filter(systExpression, cutflowName) ) );
     }
+
+    // Make a child node
+    // Note - use 'new' rather than make_unique as this is a protected
+    // constructor
+    std::shared_ptr<Node> child(new Node(
+          *this, std::move(childRNodes), name, cutflowName) );
+    m_children.push_back(child);
     return child;
   }
 
@@ -166,10 +172,11 @@ namespace RDFAnalysis {
 
   Node::Node(
       Node& parent,
+      std::map<std::string, RNode>&& rnodes,
       const std::string& name,
       const std::string& cutflowName) :
     m_parent(&parent),
-    m_rnodes(parent.rnodes() ),
+    m_rnodes(std::move(rnodes) ),
     m_namer(parent.namer().copy() ),
     m_name(name),
     m_cutflowName(cutflowName),
