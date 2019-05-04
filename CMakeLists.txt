@@ -40,36 +40,6 @@ target_compile_features( RDFAnalysis
       cxx_std_14
     )
 
-add_executable( test-tree )
-target_sources( test-tree
-    PRIVATE
-      util/test-tree.cxx
-    )
-target_include_directories( test-tree
-    PRIVATE
-      include
-    )
-target_link_libraries( test-tree
-    PRIVATE
-      RDFAnalysis
-      ROOT::Physics
-      Boost::program_options
-    )
-
-add_executable( rdf-test )
-target_sources( rdf-test
-    PRIVATE
-      util/rdf-test)
-target_link_libraries( rdf-test
-    PRIVATE
-      RDFAnalysis
-      Boost::program_options
-    )
-target_compile_features( rdf-test
-    PRIVATE
-      cxx_std_14
-    )
-
 add_executable( monohbb )
 target_sources( monohbb
     PRIVATE
