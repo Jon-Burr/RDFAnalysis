@@ -91,20 +91,21 @@ int main(int argc, char* argv[]) {
       std::make_unique<RDFAnalysis::DefaultBranchNamer>(systematics, true, false) );
   root->setWeight("MCEventWeight*pileupWeight");
 
-  root->Define("SelJetPt", "JetPt[JetIsSignal]").
-    Define("SelJetEta", "JetEta[JetIsSignal]").
-    Define("SelJetPhi", "JetPhi[JetIsSignal]").
-    Define("SelJetMass", "JetMass[JetIsSignal]").
-    Define("SelJetIsBJet", "JetIsBJet[JetIsSignal]").
-    Define("SelFatJetPt", "FatJetPt[FatJetIsSignal]").
-    Define("SelFatJetEta", "FatJetEta[FatJetIsSignal]").
-    Define("SelFatJetPhi", "FatJetPhi[FatJetIsSignal]").
-    Define("SelFatJetMass", "FatJetMass[FatJetIsSignal]").
-    Define("SelMuCorrFatJetPt", "FatJetMuonInJetPt[FatJetIsSignal]").
-    Define("SelMuCorrFatJetEta", "FatJetMuonInJetEta[FatJetIsSignal]").
-    Define("SelMuCorrFatJetPhi", "FatJetMuonInJetPhi[FatJetIsSignal]").
-    Define("SelMuCorrFatJetMass", "FatJetMuonInJetMass[FatJetIsSignal]").
-    Define("SelFatJetNTrackBJets", "FatJetNTrackBJets[FatJetIsSignal]").
+  root->
+    Define("SelJetPt", "JetPt[JetIsSignal]")->
+    Define("SelJetEta", "JetEta[JetIsSignal]")->
+    Define("SelJetPhi", "JetPhi[JetIsSignal]")->
+    Define("SelJetMass", "JetMass[JetIsSignal]")->
+    Define("SelJetIsBJet", "JetIsBJet[JetIsSignal]")->
+    Define("SelFatJetPt", "FatJetPt[FatJetIsSignal]")->
+    Define("SelFatJetEta", "FatJetEta[FatJetIsSignal]")->
+    Define("SelFatJetPhi", "FatJetPhi[FatJetIsSignal]")->
+    Define("SelFatJetMass", "FatJetMass[FatJetIsSignal]")->
+    Define("SelMuCorrFatJetPt", "FatJetMuonInJetPt[FatJetIsSignal]")->
+    Define("SelMuCorrFatJetEta", "FatJetMuonInJetEta[FatJetIsSignal]")->
+    Define("SelMuCorrFatJetPhi", "FatJetMuonInJetPhi[FatJetIsSignal]")->
+    Define("SelMuCorrFatJetMass", "FatJetMuonInJetMass[FatJetIsSignal]")->
+    Define("SelFatJetNTrackBJets", "FatJetNTrackBJets[FatJetIsSignal]")->
     Define("SelFatJetPassDRCut", "FatJetPassDRCut[FatJetIsSignal]");
   auto presel = root->Filter("Preselection", "Preselection", "Preselection");
   auto veto = [] (const std::vector<char>& vec) {

@@ -3,7 +3,7 @@
 
 namespace RDFAnalysis {
   template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, Node&> Node::Define(
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Node::Define(
         const std::string& name,
         F f,
         const ColumnNames_t& columns)
@@ -31,12 +31,11 @@ namespace RDFAnalysis {
             m_namer->createBranch(name, syst, false),
             f,
             m_namer->nameBranches(columns, syst) );
-      return *this;
+      return shared_from_this();
     }
 
   template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{},
-    std::shared_ptr<Node>> Node::Filter(
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Node::Filter(
         F f,
         const ColumnNames_t& columns,
         const std::string& name,
@@ -84,8 +83,7 @@ namespace RDFAnalysis {
     }
 
   template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{},
-    std::shared_ptr<Node>> Node::setWeight(
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Node::setWeight(
         F f,
         const ColumnNames_t& columns, 
         bool multiplicative)

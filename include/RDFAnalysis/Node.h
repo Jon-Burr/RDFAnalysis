@@ -23,17 +23,18 @@ namespace RDFAnalysis {
       /// Typedefs
       using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
 
+
       /**
        * @brief Define a new variable on this node
        * @tparam F The functor type
        * @param name The name of the column to define
        * @param f The functor
        * @param columns The input variables (if any) to the functor
-       * @return A reference to this object.
+       * @return A shared pointer to this object.
        * The new column's data type will be the return type of the functor
        */
       template <typename F>
-        std::enable_if_t<!std::is_convertible<F, std::string>{},Node&> Define(
+        std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Define(
             const std::string& name,
             F f,
             const ColumnNames_t& columns = {});
@@ -42,11 +43,11 @@ namespace RDFAnalysis {
        * @brief Define a new variable on this node
        * @param name The name of the column to define
        * @param expression The string expression to interpret
-       * @return A reference to this object.
+       * @return A shared pointer to this object.
        * The new column's data type will be the return type of the JITted
        * function
        */
-      Node& Define(
+      std::shared_ptr<Node> Define(
           const std::string& name,
           const std::string& expression);
 
@@ -55,13 +56,13 @@ namespace RDFAnalysis {
        * @param name The name of the column to define
        * @param expression The string expression to interpret
        * @param columns The input variables to the expression
-       * @return A reference to this object.
+       * @return A shared pointer to this object.
        * The new column's data type will be the return type of the JITted
        * function. The expression should have the column names replaced by
        * placeholders like {idx} (where idx is the index of the branch in the
        * columns vector).
        */
-      Node& Define(
+      std::shared_ptr<Node> Define(
           const std::string& name,
           const std::string& expression,
           const ColumnNames_t& columns);
@@ -120,8 +121,7 @@ namespace RDFAnalysis {
        * The new weight will be calculated and stored in a new branch.
        */
       template <typename F>
-        std::enable_if_t<!std::is_convertible<F, std::string>{},
-        std::shared_ptr<Node>> setWeight(
+        std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> setWeight(
             F f,
             const ColumnNames_t& columns = {},
             bool multiplicative = true);

@@ -5,7 +5,7 @@
 
 namespace RDFAnalysis {
 
-  Node& Node::Define(
+  std::shared_ptr<Node> Node::Define(
       const std::string& name,
       const std::string& expression)
   {
@@ -13,7 +13,7 @@ namespace RDFAnalysis {
     return Define(name, expanded.first, expanded.second);
   }
 
-  Node& Node::Define(
+  std::shared_ptr<Node> Node::Define(
       const std::string& name,
       const std::string& expression,
       const ColumnNames_t& columns)
@@ -42,7 +42,7 @@ namespace RDFAnalysis {
       nominal = nominal.Define(
           m_namer->createBranch(name, syst, false), systExpression);
     }
-    return *this;
+    return shared_from_this();
   }
 
   std::shared_ptr<Node> Node::Filter(
