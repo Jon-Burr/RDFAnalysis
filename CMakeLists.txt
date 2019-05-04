@@ -1,22 +1,18 @@
 cmake_minimum_required( VERSION 3.9 )
 
-project( RDFAnalysis LANGUAGES CXX )
-
 # ROOT version 6.16 at least is required as this introduces the RNode base class
 # that makes this approach possible.
-find_package( ROOT 6.16 REQUIRED COMPONENTS ROOTDataFrame )
+find_package( ROOT 6.16 REQUIRED COMPONENTS ROOTDataFrame Physics )
 find_package( Boost COMPONENTS program_options REQUIRED )
+include(${ROOT_USE_FILE})
 
 # Define the library created here
-add_library( RDFAnalysis SHARED )
+add_library( RDFAnalysis )
 
 # Add the public headers
 target_include_directories( RDFAnalysis
     PUBLIC
       include
-      ${ROOT_INCLUDE_DIRS}
-    PRIVATE
-      ${Boost_INCLUDE_DIRS}
     )
 
 # Add the sources
@@ -28,13 +24,14 @@ target_sources( RDFAnalysis
       src/TObjectWriter.cxx
       src/CutflowWriter.cxx
       src/IBranchNamer.cxx
-      src/NodeStatistics.cxx
     )
 
 # Link ROOT
 target_link_libraries( RDFAnalysis
     PUBLIC
-      ${ROOT_LIBRARIES}
+      ROOT::ROOTDataFrame
+    PRIVATE
+      Boost::boost
     )
 
 # Enforce C++14 features
@@ -51,28 +48,22 @@ target_sources( test-tree
 target_include_directories( test-tree
     PRIVATE
       include
-      ${ROOT_INCLUDE_DIRS}
-      ${Boost_INCLUDE_DIRS}
     )
 target_link_libraries( test-tree
     PRIVATE
       RDFAnalysis
-      ${Boost_LIBRARIES}
+      ROOT::Physics
+      Boost::program_options
     )
 
 add_executable( rdf-test )
 target_sources( rdf-test
     PRIVATE
       util/rdf-test)
-target_include_directories( rdf-test
-    PRIVATE
-      ${ROOT_INCLUDE_DIRS}
-      ${Boost_INCLUDE_DIRS}
-    )
 target_link_libraries( rdf-test
     PRIVATE
-      ${ROOT_LIBRARIES}
-      ${Boost_LIBRARIES}
+      RDFAnalysis
+      Boost::program_options
     )
 target_compile_features( rdf-test
     PRIVATE
@@ -84,17 +75,10 @@ target_sources( monohbb
     PRIVATE
       util/monohbb.cxx
     )
-target_include_directories( monohbb
-    PRIVATE
-      include
-      ${ROOT_INCLUDE_DIRS}
-      ${Boost_INCLUDE_DIRS}
-    )
 target_link_libraries( monohbb
     PRIVATE
       RDFAnalysis
-      ${ROOT_LIBRARIES}
-      ${Boost_LIBRARIES}
+      Boost::program_options
     )
 
 add_executable( jetres )
@@ -102,15 +86,8 @@ target_sources( jetres
     PRIVATE
       util/jetres.cxx
     )
-target_include_directories( jetres
-    PRIVATE
-      include
-      ${ROOT_INCLUDE_DIRS}
-      ${Boost_INCLUDE_DIRS}
-    )
 target_link_libraries( jetres
     PRIVATE
       RDFAnalysis
-      ${ROOT_LIBRARIES}
-      ${Boost_LIBRARIES}
+      Boost::program_options
     )
