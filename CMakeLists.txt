@@ -28,7 +28,6 @@ target_sources( RDFAnalysis
       src/TObjectWriter.cxx
       src/CutflowWriter.cxx
       src/IBranchNamer.cxx
-      src/NodeStatistics.cxx
     )
 
 # Link ROOT
