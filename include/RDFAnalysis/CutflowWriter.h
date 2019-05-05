@@ -3,51 +3,54 @@
 
 // package includes
 #include "RDFAnalysis/INodeWriter.h"
+#include "RDFAnalysis/Helpers.h"
 #include <string>
 #include <vector>
 #include <map>
 #include "Rtypes.h"
-
-class TH1;
+#include <TH1.h>
+#include <TDirectory.h>
 
 namespace RDFAnalysis {
   /**
    * @brief Class to write cutflows from Nodes
    */
-  class CutflowWriter : public INodeWriter {
-    public:
-      ~CutflowWriter() override {}
+  template <typename N>
+    class CutflowWriter : public INodeWriter<N> {
+      public:
+        ~CutflowWriter() override {}
 
-      /**
-       * @brief Create the writer.
-       * @param subDirName The name of the directory to save the cutflows to. If
-       * the empty string is provided then the cutflows will not be saved to a
-       * subdirectory.
-       */
-      CutflowWriter(const std::string& subDirName="cutflows");
+        /**
+        * @brief Create the writer.
+        * @param subDirName The name of the directory to save the cutflows to. If
+        * the empty string is provided then the cutflows will not be saved to a
+        * subdirectory.
+        */
+        CutflowWriter(const std::string& subDirName="cutflows");
 
-      /**
-       * @brief Write cutflows from \ref node to \ref directory.
-       * @param node The node to write.
-       * @param directory The directory to write to.
-       * @param depth How deep down the node structure we are.
-       */
-      void write(
-          Node& node,
-          TDirectory* directory,
-          std::size_t depth) override;
-      
-    private:
-      /// The subdirectory name
-      std::string m_subDirName;
+        /**
+        * @brief Write cutflows from \ref node to \ref directory.
+        * @param node The node to write.
+        * @param directory The directory to write to.
+        * @param depth How deep down the node structure we are.
+        */
+        void write(
+            N& node,
+            TDirectory* directory,
+            std::size_t depth) override;
+        
+      private:
+        /// The subdirectory name
+        std::string m_subDirName;
 
-      /// Build up the cutflow into this vector
-      std::vector<std::map<std::string,std::pair<std::string, ULong64_t>>> m_cutflow;
+        /// Build up the cutflow into this vector
+        std::vector<std::map<std::string,std::pair<std::string, ULong64_t>>> m_cutflow;
 
-      /// Build up the weighted cutflow into this vector
-      std::vector<std::map<std::string,std::pair<std::string, std::pair<float, float>>>> m_weightedCutflow;
+        /// Build up the weighted cutflow into this vector
+        std::vector<std::map<std::string,std::pair<std::string, std::pair<float, float>>>> m_weightedCutflow;
 
-  }; //> end class CutflowWriter
+    }; //> end class CutflowWriter
 } //> end namespace RDFAnalysis
 
+#include "RDFAnalysis/CutflowWriter.icc"
 #endif //> !RDFAnalysis_CutflowWriter_H

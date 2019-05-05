@@ -49,7 +49,10 @@ namespace RDFAnalysis {
     newDir = dir->mkdir(name.c_str() );
     if (!newDir && doThrow)
       throw std::runtime_error("Failed to get/make directory " + name);
-    return newDir;
+    // When making a hierarchy mkdir has an unexpected return type (the root of
+    // the new directories, not the bottom step so we have to return the right
+    // thing
+    return dir->GetDirectory(name.c_str() );
   }
 
   template <typename Map>

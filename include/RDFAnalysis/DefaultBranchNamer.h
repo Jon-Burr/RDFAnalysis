@@ -1,14 +1,18 @@
 #ifndef RDFAnalysis_BranchNamer_H
 #define RDFAnalysis_BranchNamer_H
 
-// Package includes
-#include "RDFAnalysis/IBranchNamer.h"
-
 // STL includes
 #include <map>
+#include <string>
+#include <vector>
+#include <set>
+#include <memory>
+
+// ROOT includes
+#include <ROOT/RDataFrame.hxx>
 
 namespace RDFAnalysis {
-  class DefaultBranchNamer : public IBranchNamer {
+  class DefaultBranchNamer {
     public:
       /**
       * @brief Construct the namer
@@ -39,7 +43,7 @@ namespace RDFAnalysis {
        */
       std::string nameBranch(
           const std::string& branch,
-          const std::string& systName = "") const override;
+          const std::string& systName = "") const;
 
       /**
        * @brief Get the full names of a list of branches
@@ -51,7 +55,7 @@ namespace RDFAnalysis {
        */
       std::vector<std::string> nameBranches(
           const std::vector<std::string>& branches,
-          const std::string& systName = "") const override;
+          const std::string& systName = "") const;
 
       /**
        * @brief Get the full name of a branch
@@ -65,7 +69,7 @@ namespace RDFAnalysis {
       std::string createBranch(
           const std::string& branch,
           const std::string& systName = "",
-          bool isRNodeSys = false) override;
+          bool isRNodeSys = false);
 
       /**
        * @brief Test if a specific variation of a specific branch exists
@@ -74,7 +78,7 @@ namespace RDFAnalysis {
        */
       bool exists(
           const std::string& branch,
-          const std::string& systName = "") const override;
+          const std::string& systName = "") const;
 
       /**
        * @brief Get the full name of a branch
@@ -88,12 +92,12 @@ namespace RDFAnalysis {
           const std::string& systName = "",
           bool isRNodeSys = false) const;
 
-      const std::string& nominalName() const override { return m_nominalName; }
+      const std::string& nominalName() const { return m_nominalName; }
 
       /**
        * @brief Get all systematics.
        */
-      std::vector<std::string> systematics() const override
+      std::vector<std::string> systematics() const
       { return m_systematics; }
 
       /**
@@ -101,37 +105,34 @@ namespace RDFAnalysis {
        * @param branch The name of the branch to test
        */
       std::set<std::string> systematicsAffecting(
-          const std::string& branch) const override;
+          const std::string& branch) const;
+
+      /**
+       * @brief Get all the systematics affecting a set of columns.
+       * @param branches The names of the branches to test
+       */
+      std::set<std::string> systematicsAffecting(
+          const std::vector<std::string>& branches) const;
 
       /**
        * @brief Get all branch base names
        */
-      std::vector<std::string> branches() const override;
+      std::vector<std::string> branches() const;
 
-      /**
-       * @brief Refresh the branch names to be all the ones defined on the node.
-       * Normally it should not be necessary to call this method yourself,
-       * unless you manually add branches to an RNode.
-       */
-      void refresh() override;
+      std::pair<std::string, std::vector<std::string>> expandExpression(
+          const std::string& expression) const;
 
-      /**
-       * @brief Make a copy of this
-       */
+      std::string interpretExpression(
+          const std::string& expression,
+          const std::vector<std::string>& branches,
+          const std::string& systematic);
 
-      std::unique_ptr<IBranchNamer> copy() const override;
-    private:
       /**
        * @brief Set the node that this namer is looking at
-       * @param node The new node
-       * @param doRefresh If true the full list of branches will be refreshed.
+       * @param rnodes The input rnodes.
        */
-      void setNode(
-          const Node& node,
-          bool doRefresh = false) override;
-
-      /// The node that we are looking at
-      const Node* m_parent{nullptr};
+       void readBranchList( const std::map<std::string, ROOT::RDF::RNode>& rnodes );
+    private:
 
       /// The branches
       std::map<std::string, std::map<std::string, std::string>> m_branches;

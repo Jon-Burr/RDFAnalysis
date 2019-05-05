@@ -11,11 +11,14 @@
 #include "RDFAnalysis/DefaultBranchNamer.h"
 #include <boost/algorithm/string/join.hpp>
 #include <fstream>
+
+using node_t = RDFAnalysis::Node<RDFAnalysis::DefaultBranchNamer>;
+
 namespace {
   TH1F HPt("HiggsPt", ";p_T(H, true) [MeV]", 500, 0, 2e6);
   TH1F Mass("HiggsMass", ";m(H candidate) [MeV]", 80, 70e3, 150e3);
   TH2F MassPt("HiggsMassPt", ";p_T(H, true) [MeV]; m(H candidate) [MeV]", 20, 0, 2e6, 80, 70e3, 150e3);
-  void basicPlots(std::shared_ptr<RDFAnalysis::Node> node, std::string massVar, std::string folder="massWindow") {
+  void basicPlots(std::shared_ptr<node_t> node, std::string massVar, std::string folder="massWindow") {
     auto massWindow = node->Filter("70e3 < " + massVar + " && " + massVar + " < 150e3", folder, "70 < m_H < 150 GeV");
     massWindow->Fill(HPt, {"pTbbTruth"});
     massWindow->Fill(Mass, {massVar});
@@ -88,7 +91,7 @@ int main(int argc, char* argv[]) {
 
   auto root = RDFAnalysis::createROOT(
       ROOT::RDataFrame(input),
-      std::make_unique<RDFAnalysis::DefaultBranchNamer>(systematics, true, false) );
+      RDFAnalysis::DefaultBranchNamer(systematics, true, false) );
   root->setWeight("MCEventWeight*pileupWeight");
 
   root->
@@ -131,9 +134,9 @@ int main(int argc, char* argv[]) {
   basicPlots(merged2b, "mJ");
   basicPlots(merged2b, "mJMuCorr", "massWindowMuCorr");
 
-  RDFAnalysis::OutputWriter outputWriter(output, overwrite);
-  outputWriter.addWriter(RDFAnalysis::TObjectWriter() );
-  outputWriter.addWriter(RDFAnalysis::CutflowWriter() );
+  RDFAnalysis::OutputWriter<node_t> outputWriter(output, overwrite);
+  outputWriter.addWriter<RDFAnalysis::TObjectWriter>();
+  outputWriter.addWriter<RDFAnalysis::CutflowWriter>();
   std::cout << "Trigger run" << std::endl;
   root->rootRNode().Foreach(
       [nEvents = input.GetEntries()] (ULong64_t entry) {

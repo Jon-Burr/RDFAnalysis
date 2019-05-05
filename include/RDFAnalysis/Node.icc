@@ -2,17 +2,17 @@
 #define RDFAnalysis_Node_ICC
 
 namespace RDFAnalysis {
-  template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Node::Define(
+  template <typename BranchNamer> template <typename F>
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer>>> Node<BranchNamer>::Define(
         const std::string& name,
         F f,
         const ColumnNames_t& columns)
     {
       // First, work out which systematics this affects
-      std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
+      std::set<std::string> affecting = m_namer.systematicsAffecting(columns);
       // Make sure that we at least affect the nominal
       if (affecting.size() == 0)
-        affecting.insert(m_namer->nominalName() );
+        affecting.insert(m_namer.nominalName() );
 
       // For each of our RNodes, update it to be the one with the new variable
       // defined on it.
@@ -20,22 +20,64 @@ namespace RDFAnalysis {
         // Remove this systematic from consideration
         affecting.erase(rnode.first);
         rnode.second = rnode.second.Define(
-            m_namer->createBranch(name, rnode.first, true),
+            m_namer.createBranch(name, rnode.first, true),
             f,
-            m_namer->nameBranches(columns, rnode.first) );
+            m_namer.nameBranches(columns, rnode.first) );
       }
       // Add any left over to the nominal
-      RNode& nominal = m_rnodes.at(m_namer->nominalName());
+      RNode& nominal = m_rnodes.at(m_namer.nominalName());
       for (const std::string& syst : affecting)
         nominal = nominal.Define(
-            m_namer->createBranch(name, syst, false),
+            m_namer.createBranch(name, syst, false),
             f,
-            m_namer->nameBranches(columns, syst) );
-      return shared_from_this();
+            m_namer.nameBranches(columns, syst) );
+      return this->shared_from_this();
     }
 
-  template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Node::Filter(
+  template <typename BranchNamer>
+    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Define(
+        const std::string& name,
+        const std::string& expression)
+    {
+      auto expanded = m_namer.expandExpression(expression);
+      return Define(name, expanded.first, expanded.second);
+    }
+
+  template <typename BranchNamer>
+    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Define(
+        const std::string& name,
+        const std::string& expression,
+        const ColumnNames_t& columns)
+    {
+      // First, work out which systematics this affects
+      std::set<std::string> affecting = m_namer.systematicsAffecting(columns);
+      // Make sure that we at least affect the nominal
+      if (affecting.size() == 0)
+        affecting.insert(m_namer.nominalName() );
+
+      // For each of our RNodes, update it to be the one with the new variable
+      // defined on it.
+      for (auto& rnode : m_rnodes) {
+        // Remove this systematic from consideration
+        affecting.erase(rnode.first);
+        std::string systExpression = m_namer.interpretExpression(
+            expression, columns, rnode.first);
+        rnode.second = rnode.second.Define(
+            m_namer.createBranch(name, rnode.first, true), systExpression);
+      }
+      // Add any left over to the nominal
+      RNode& nominal = m_rnodes.at(m_namer.nominalName());
+      for (const std::string& syst : affecting) {
+        std::string systExpression = m_namer.interpretExpression(
+            expression, columns, syst);
+        nominal = nominal.Define(
+            m_namer.createBranch(name, syst, false), systExpression);
+      }
+      return this->shared_from_this();
+    }
+
+  template <typename BranchNamer> template <typename F>
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer>>> Node<BranchNamer>::Filter(
         F f,
         const ColumnNames_t& columns,
         const std::string& name,
@@ -49,10 +91,10 @@ namespace RDFAnalysis {
               "already has a node with that name!");
 
       // First, work out which systematics this affects
-      std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
+      std::set<std::string> affecting = m_namer.systematicsAffecting(columns);
       // Make sure that we at least affect the nominal
       if (affecting.size() == 0)
-        affecting.insert(m_namer->nominalName() );
+        affecting.insert(m_namer.nominalName() );
       
       std::map<std::string, RNode> childRNodes;
       for (auto& rnodePair : m_rnodes) {
@@ -60,18 +102,18 @@ namespace RDFAnalysis {
               rnodePair.first, 
               rnodePair.second.Filter(
                 f,
-                m_namer->nameBranches(columns, rnodePair.first),
+                m_namer.nameBranches(columns, rnodePair.first),
                 cutflowName) ) );
         affecting.erase(rnodePair.first);
       }
 
-      RNode& nominalNode = m_rnodes.at(m_namer->nominalName() );
+      RNode& nominalNode = m_rnodes.at(m_namer.nominalName() );
       for (const std::string& syst : affecting)
         childRNodes.insert(std::make_pair(
               syst,
               nominalNode.Filter(
                 f,
-                m_namer->nameBranches(columns, syst),
+                m_namer.nameBranches(columns, syst),
                 cutflowName) ) );
       // Create the new child and add it
       // Note - use 'new' rather than make_unique as this is a protected
@@ -82,8 +124,68 @@ namespace RDFAnalysis {
       return child;
     }
 
-  template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Node::setWeight(
+  template <typename BranchNamer>
+    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Filter(
+        const std::string& expression,
+        const std::string& name,
+        const std::string& cutflowName)
+    {
+      auto expanded = m_namer.expandExpression(expression);
+      return Filter(expanded.first, expanded.second, name, cutflowName);
+    }
+
+  template <typename BranchNamer>
+    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Filter(
+        const std::string& expression,
+        const ColumnNames_t& columns,
+        const std::string& name,
+        const std::string& cutflowName)
+    {
+      // Make sure that there isn't already a node with this name
+      for (const std::shared_ptr<Node>& child : m_children)
+        if (child->name() == name)
+          throw std::runtime_error(
+              "Attempting to create child '" + name + "' but this node " + 
+              "already has a node with that name!");
+
+      std::map<std::string, RNode> childRNodes;
+      // First, work out which systematics this affects
+      std::set<std::string> affecting = m_namer.systematicsAffecting(columns);
+      // Make sure that we at least affect the nominal
+      if (affecting.size() == 0)
+        affecting.insert(m_namer.nominalName() );
+
+      // Apply the filters to the child node
+      for (auto& rnodePair : m_rnodes) {
+        std::string systExpression = m_namer.interpretExpression(
+          expression, columns, rnodePair.first);
+        childRNodes.insert(std::make_pair(
+              rnodePair.first,
+              rnodePair.second.Filter(systExpression, cutflowName) ) );
+        affecting.erase(rnodePair.first);
+      }
+
+      RNode& nominalNode = m_rnodes.at(m_namer.nominalName() );
+      // Make new child rnodes for every remaining systematic
+      for (const std::string& syst : affecting) {
+        std::string systExpression = m_namer.interpretExpression(
+            expression, columns, syst);
+        childRNodes.insert(std::make_pair(
+              syst,
+              nominalNode.Filter(systExpression, cutflowName) ) );
+      }
+
+      // Make a child node
+      // Note - use 'new' rather than make_unique as this is a protected
+      // constructor
+      std::shared_ptr<Node> child(new Node(
+            *this, std::move(childRNodes), name, cutflowName) );
+      m_children.push_back(child);
+      return child;
+    }
+
+  template <typename BranchNamer> template <typename F>
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer>>> Node<BranchNamer>::setWeight(
         F f,
         const ColumnNames_t& columns, 
         bool multiplicative)
@@ -107,18 +209,68 @@ namespace RDFAnalysis {
         // Reset the weighted node statistics
         setupWeightedStatistics();
       }
-      return shared_from_this();
+      return this->shared_from_this();
     }
 
-  template <typename T>
-    SysResultPtr<T> Node::Fill(
+  template <typename BranchNamer>
+    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::setWeight(
+        const std::string& expression,
+        bool multiplicative)
+    {
+      if (multiplicative && m_parent && !m_parent->getWeight().empty() ) {
+        // Adapt the expression to include the parent weight and then call this
+        // function again with the new expression and multiplicative set to false
+        return setWeight("("+expression+") * " + m_parent->getWeight(), false);
+      }
+      else if (m_namer.exists(expression) ) {
+        // For this version only, if the new weight is already a column, no need
+        // to recalculated it...
+        m_weight = expression;
+        setupWeightedStatistics();
+      }
+      else {
+        m_weight = nameWeight();
+        Define(m_weight, expression);
+        // Reset the weighted node statistics
+        setupWeightedStatistics();
+      }
+      return this->shared_from_this();
+    }
+
+  template <typename BranchNamer>
+    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::setWeight(
+        const std::string& expression,
+        const ColumnNames_t& columns,
+        bool multiplicative)
+    {
+      if (multiplicative && m_parent && !m_parent->getWeight().empty() ) {
+        // Adapt the expression to include the parent weight and then call this
+        // function again with the new expression and multiplicative set to false
+        ColumnNames_t newColumns = columns;
+        newColumns.push_back(m_parent->getWeight() );
+        return setWeight(
+            "("+expression+") * {" + std::to_string(columns.size() ) + "}",
+            newColumns,
+            false);
+      }
+      else {
+        m_weight = nameWeight();
+        Define(m_weight, expression, columns);
+        // Reset the weighted node statistics
+        setupWeightedStatistics();
+      }
+      return this->shared_from_this();
+    }
+
+  template <typename BranchNamer> template <typename T>
+    SysResultPtr<T> Node<BranchNamer>::Fill(
         const T& model,
         const ColumnNames_t& columns)
     {
       // Create the result pointer
-      SysResultPtr<T> result(m_namer->nominalName() );
+      SysResultPtr<T> result(m_namer.nominalName() );
       // Which systematics do we care about?
-      std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
+      std::set<std::string> affecting = m_namer.systematicsAffecting(columns);
 
       // Create the object from all of our rnodes first, erasing systematics as
       // we go
@@ -127,26 +279,110 @@ namespace RDFAnalysis {
             rnodePair.first,
             rnodePair.second.Fill(
               T(model),
-              m_namer->nameBranches(columns) ) );
+              m_namer.nameBranches(columns) ) );
         affecting.erase(rnodePair.first);
       }
 
       // TODO - make this extraction of the right branch names from the vector
       // part of the namer class!
 
-      RNode& nominalNode = m_rnodes.at(m_namer->nominalName() );
+      RNode& nominalNode = m_rnodes.at(m_namer.nominalName() );
       // For all the remaining systematics make them from the nominal
       for (const std::string& syst : affecting)
         result.addResult(
             syst,
             nominalNode.Fill(
               T(model),
-              m_namer->nameBranches(columns) ) );
+              m_namer.nameBranches(columns) ) );
       // We won't write the contents of anonymous nodes so don't even keep them
       // here
       if (!isAnonymous() )
         m_objects.push_back(result);
       return result;      
+    }
+
+  template <typename BranchNamer>
+    Node<BranchNamer>::Node(
+        const RNode& rnode,
+        const BranchNamer& namer,
+        const std::string& name,
+        const std::string& cutflowName) :
+      m_rnodes({{namer.nominalName(), rnode}}),
+      m_namer(namer),
+      m_name(name),
+      m_cutflowName(cutflowName),
+      m_rootRNode(&m_rnodes.at(m_namer.nominalName() ) ),
+      m_stats(m_namer.nominalName() ),
+      m_weightedStats(m_namer.nominalName() )
+    {
+      m_namer.readBranchList(m_rnodes);
+      m_stats.addResult(
+          m_namer.nominalName(), 
+          m_rnodes.at(m_namer.nominalName() ).Count() );
+    }
+
+  template <typename BranchNamer>
+    Node<BranchNamer>::Node(
+        Node& parent,
+        std::map<std::string, RNode>&& rnodes,
+        const std::string& name,
+        const std::string& cutflowName) :
+      m_parent(&parent),
+      m_rnodes(std::move(rnodes) ),
+      m_namer(parent.namer() ),
+      m_name(name),
+      m_cutflowName(cutflowName),
+      m_rootRNode(parent.m_rootRNode),
+      m_stats(m_namer.nominalName() ),
+      m_weightedStats(m_namer.nominalName() ),
+      m_weight(parent.getWeight() )
+    {
+      for (auto& nodePair : m_rnodes) {
+        m_stats.addResult(nodePair.first, nodePair.second.Count() );
+      }
+      if (!m_weight.empty() )
+        setupWeightedStatistics();
+    }
+
+  template <typename BranchNamer>
+    std::string Node<BranchNamer>::nameWeight()
+    {
+      // Construct the name of the node by hashing the pointer
+      return "_NodeWeight_"+std::to_string(std::hash<Node*>()(this) )+"_";
+    }
+
+  template <typename BranchNamer>
+    void Node<BranchNamer>::setupWeightedStatistics()
+    {
+      // Clear out anything that was already there.
+      m_weightedStats.reset();
+      // Work out which systematics we care about
+      std::set<std::string> affecting = m_namer.systematicsAffecting(m_weight);
+
+      auto aggrFunc = [] (const std::pair<float, float>& lhs, float rhs)
+      { return std::make_pair(lhs.first + rhs, lhs.second + rhs*rhs); };
+      auto mergeFunc =
+        [] (const std::pair<float, float>& lhs, const std::pair<float, float>& rhs)
+      { return std::make_pair(lhs.first+rhs.first, lhs.second+rhs.second); };
+
+      for (auto& rnodePair : m_rnodes) {
+        m_weightedStats.addResult(
+            rnodePair.first,
+            rnodePair.second.Aggregate(
+              aggrFunc,
+              mergeFunc,
+              m_namer.nameBranch(m_weight, rnodePair.first) ) );
+        affecting.erase(rnodePair.first);
+      }
+      RNode& nominalNode = m_rnodes.at(m_namer.nominalName() );
+      // For all the remaining systematics make them from the nominal
+      for (const std::string& syst : affecting)
+        m_weightedStats.addResult(
+            syst,
+            nominalNode.Aggregate(
+              aggrFunc,
+              mergeFunc,
+              m_namer.nameBranch(m_weight, syst) ) );
     }
 }
 

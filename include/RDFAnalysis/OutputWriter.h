@@ -2,7 +2,6 @@
 #define RDFAnalysis_OutputWriter_H
 
 // package includes
-#include "RDFAnalysis/Node.h"
 #include "RDFAnalysis/INodeWriter.h"
 
 // ROOT includes
@@ -19,59 +18,75 @@ namespace RDFAnalysis {
    * receives other INodeWriter objects that create the output from any
    * individual node.
    */
-  class OutputWriter {
-    public:
-      /**
-       * @brief Create the writer
-       * @param directory The directory to write into
-       */
-      OutputWriter(const std::shared_ptr<TDirectory>& directory);
+  template <typename N>
+    class OutputWriter {
+      public:
+        /// The node type we're templated on
+        using node_t = N;
+        /**
+        * @brief Create the writer
+        * @param directory The directory to write into
+        */
+        OutputWriter(const std::shared_ptr<TDirectory>& directory);
 
-      /**
-       * @brief Create the writer, opening a file to do it
-       * @param fileName The file to create
-       * @param overwrite Whether or not to overwrite the output file.
-       */
-      OutputWriter(
-          const std::string& fileName,
-          bool overwrite = false);
+        /**
+        * @brief Create the writer, opening a file to do it
+        * @param fileName The file to create
+        * @param overwrite Whether or not to overwrite the output file.
+        */
+        OutputWriter(
+            const std::string& fileName,
+            bool overwrite = false);
 
-      /**
-       * @brief Write information from the given node and all downstream.
-       * @param node The node to write from
-       */
-      void write(Node& node) { write(node, m_directory.get() ); }
+        /**
+        * @brief Write information from the given node and all downstream.
+        * @param node The node to write from
+        */
+        void write(N& node) { write(node, m_directory.get() ); }
 
-      /// Add a writer  
-      void addWriter(const std::shared_ptr<INodeWriter>& writer)
-      { m_writers.push_back(writer); }
+        /// Add a writer  
+        void addWriter(const std::shared_ptr<INodeWriter<N>>& writer)
+        { m_writers.push_back(writer); }
 
-      /// Add a writer
-      template <typename T> std::enable_if_t<std::is_base_of<INodeWriter, T>{},
-        void> addWriter(T&& writer)
-        { addWriter(std::make_shared<T>(std::move(writer) ) ); }
+        /// Add a writer
+        template <typename T> std::enable_if_t<std::is_base_of<INodeWriter<N>, T>{},
+          void> addWriter(T&& writer)
+          { addWriter(std::make_shared<T>(std::move(writer) ) ); }
 
-      /// Get the writers
-      std::vector<std::shared_ptr<INodeWriter>>& writers()
-      { return m_writers; }
+        /**
+         * @brief Add a writer
+         * @tparam T The type of writer to add
+         * @tparam Args The types of arguments for the writer constructor
+         * @param args The arguments for the constructor.
+         * This version constructs the writer in place. The writer type T will
+         * be templated on the write N class.
+         */
+        template <template<class> class T, typename... Args>
+          std::enable_if_t<std::is_base_of<INodeWriter<N>, T<N>>{}, void> addWriter(
+              Args&&... args)
+          { addWriter(std::make_shared<T<N>>(std::forward<Args>(args)...) ); }
 
-      /// Get the writers
-      const std::vector<std::shared_ptr<INodeWriter>>& writers() const
-      { return m_writers; }
+        /// Get the writers
+        std::vector<std::shared_ptr<INodeWriter<N>>>& writers()
+        { return m_writers; }
 
-    private:
-      /// The output directory
-      std::shared_ptr<TDirectory> m_directory;
+        /// Get the writers
+        const std::vector<std::shared_ptr<INodeWriter<N>>>& writers() const
+        { return m_writers; }
 
-      /// The writers
-      std::vector<std::shared_ptr<INodeWriter>> m_writers;
+      private:
+        /// The output directory
+        std::shared_ptr<TDirectory> m_directory;
 
-      /// Write directly to a directory
-      void write(
-          Node& node,
-          TDirectory* directory,
-          std::size_t depth = 0);
-  }; //> end class OutputWriter
+        /// The writers
+        std::vector<std::shared_ptr<INodeWriter<N>>> m_writers;
+
+        /// Write directly to a directory
+        void write(
+            N& node,
+            TDirectory* directory,
+            std::size_t depth = 0);
+    }; //> end class OutputWriter
 } //> end namespace RDFAnalysis
-
+#include "RDFAnalysis/OutputWriter.icc"
 #endif //> !RDFAnalysis_OutputWriter_H

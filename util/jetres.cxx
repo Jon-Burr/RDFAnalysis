@@ -13,7 +13,7 @@
 
 namespace {
   void massPlots(
-      std::shared_ptr<RDFAnalysis::Node> node,
+      std::shared_ptr<RDFAnalysis::Node<RDFAnalysis::DefaultBranchNamer>> node,
       std::string jetStub,
       int nBins,
       float low,
@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
 
   auto root = RDFAnalysis::createROOT(
       ROOT::RDataFrame(input),
-      std::make_unique<RDFAnalysis::DefaultBranchNamer>(std::vector<std::string>{""}, true, false, "") );
+      RDFAnalysis::DefaultBranchNamer(std::vector<std::string>{""}, true, false, "") );
 
   auto Z = root->Filter("BosonID == 23", "Z", "Z");
   auto Zbottom = Z->Filter("BosonDecayID == 5", "Zbottom", "Zbottom");
@@ -86,13 +86,14 @@ int main(int argc, char* argv[]) {
   auto Zlight = Z->Filter("BosonDecayID < 4", "Zlight", "Zlight");
   auto H = root->Filter("BosonID == 25", "Higgs", "Higgs");
   for (const std::string& jet : {"FatJet", "FatJetCalib", "FatJetTruth"}) {
-    for (const std::shared_ptr<RDFAnalysis::Node>& zn : {Zbottom, Zcharm, Zlight}) {
+    for (const std::shared_ptr<RDFAnalysis::Node<RDFAnalysis::DefaultBranchNamer>>& zn : {Zbottom, Zcharm, Zlight}) {
       massPlots(zn, jet, 70, 50e3, 120e3, 200e3);
     }
     massPlots(H, jet, 70, 80e3, 150e3, 250e3);
   }
-  RDFAnalysis::OutputWriter outputWriter(output, overwrite);
-  outputWriter.addWriter(RDFAnalysis::TObjectWriter() );
+  RDFAnalysis::OutputWriter<RDFAnalysis::Node<RDFAnalysis::DefaultBranchNamer>> outputWriter(output, overwrite);
+  outputWriter.addWriter<RDFAnalysis::TObjectWriter>();
+  /* outputWriter.addWriter(RDFAnalysis::TObjectWriter() ); */
   std::cout << "Trigger run" << std::endl;
   root->rootRNode().Foreach(
       [nEvents = input.GetEntries()] (ULong64_t entry) {

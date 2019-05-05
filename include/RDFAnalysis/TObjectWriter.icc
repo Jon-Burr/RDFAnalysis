@@ -1,0 +1,28 @@
+#ifndef RDFAnalysis_TObjectWriter_ICC
+#define RDFAnalysis_TObjectWriter_ICC
+
+namespace RDFAnalysis {
+  template <typename N>
+    TObjectWriter<N>::TObjectWriter(const std::string& subDirName) :
+      m_subDirName(subDirName)
+    {}
+
+  template <typename N>
+    void TObjectWriter<N>::write(
+        N& node,
+        TDirectory* directory,
+        std::size_t /* depth */)
+    {
+      // Loop over each object and save it
+      for (SysResultPtr<TObject>& object : node.objects() ) {
+        for (auto& objPair : object.asMap() ) {
+          // Get the directory that corresponds to this systematic
+          TDirectory* systDir =
+            getMkdir(directory, objPair.first + "/" + m_subDirName);
+          systDir->WriteTObject(objPair.second.get() );
+        }
+      }
+    }
+} //> end namespace RDFAnalysis
+
+#endif //> !RDFAnalysis_TObjectWriter_ICC

@@ -19,11 +19,6 @@ target_include_directories( RDFAnalysis
 target_sources( RDFAnalysis
     PRIVATE
       src/DefaultBranchNamer.cxx
-      src/Node.cxx
-      src/OutputWriter.cxx
-      src/TObjectWriter.cxx
-      src/CutflowWriter.cxx
-      src/IBranchNamer.cxx
     )
 
 # Link ROOT

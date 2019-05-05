@@ -2,7 +2,7 @@
 #define RDFAnalysis_Node_H
 
 // Package includes
-#include "RDFAnalysis/IBranchNamer.h"
+#include "RDFAnalysis/DefaultBranchNamer.h"
 #include "RDFAnalysis/Helpers.h"
 #include "RDFAnalysis/SysResultPtr.h"
 
@@ -17,12 +17,12 @@
 
 namespace RDFAnalysis {
   using RNode = ROOT::RDF::RNode;
-  class Node : public std::enable_shared_from_this<Node> 
+  template <typename BranchNamer = DefaultBranchNamer>
+  class Node : public std::enable_shared_from_this<Node<BranchNamer>> 
   {
     public:
       /// Typedefs
       using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
-
 
       /**
        * @brief Define a new variable on this node
@@ -190,7 +190,7 @@ namespace RDFAnalysis {
       const std::map<std::string, RNode>& rnodes() const { return m_rnodes; }
 
       /// The namer
-      const IBranchNamer& namer() const { return *m_namer; }
+      const BranchNamer& namer() const { return m_namer; }
 
       /// Get the ROOT RNode
       const RNode& rootRNode() const { return *m_rootRNode; }
@@ -225,11 +225,18 @@ namespace RDFAnalysis {
       bool isRoot() const { return m_parent == nullptr; }
 
     private:
-      friend std::shared_ptr<Node> createROOT(
-          const RNode&,
-          std::unique_ptr<IBranchNamer>,
-          const std::string&,
-          const std::string&);
+      template <typename B>
+        friend std::shared_ptr<Node<B>> createROOT(
+            const RNode&,
+            const B&,
+            const std::string&,
+            const std::string&);
+
+      template <typename B>
+        friend std::enable_if_t<std::is_default_constructible<B>{}, std::shared_ptr<Node<B>>> createROOT(
+            const RNode&,
+            const std::string&,
+            const std::string&);
 
       /**
        * @brief Create the root node of the tree
@@ -241,7 +248,7 @@ namespace RDFAnalysis {
        */
       Node(
           const RNode& rnode,
-          std::unique_ptr<IBranchNamer> namer,
+          const BranchNamer& namer,
           const std::string& name = "ROOT",
           const std::string& cutflowName = "Number of events");
 
@@ -271,7 +278,7 @@ namespace RDFAnalysis {
       std::map<std::string, RNode> m_rnodes;      
 
       /// The branch namer
-      std::unique_ptr<IBranchNamer> m_namer;
+      BranchNamer m_namer;
 
       /// The Node's name
       std::string m_name;
@@ -300,16 +307,40 @@ namespace RDFAnalysis {
 
   /**
    * @brief Create the root node of the tree
+   * @tparam BranchNamer The branch naming class
    * @param rnode The RDataFrame that forms the base of the tree
    * @param namer The branch namer
    * @param name The name of the root node
    * @param cutflowName How the root node appears in the cutflow
    */
-  std::shared_ptr<Node> createROOT(
-      const RNode& rnode,
-      std::unique_ptr<IBranchNamer>  namer,
-      const std::string& name = "ROOT",
-      const std::string& cutflowName = "Number of events");
+  template <typename BranchNamer = DefaultBranchNamer>
+    std::shared_ptr<Node<BranchNamer>> createROOT(
+        const RNode& rnode,
+        const BranchNamer& namer,
+        const std::string& name = "ROOT",
+        const std::string& cutflowName = "Number of events")
+    {
+      return std::shared_ptr<Node<BranchNamer>>(
+          new Node<BranchNamer>(rnode, namer, name, cutflowName) );
+    }
+
+  /**
+   * @brief Create the root node of the tree
+   * @tparam BranchNamer The branch naming class
+   * @param rnode The RDataFrame that forms the base of the tree
+   * @param name The name of the root node
+   * @param cutflowName How the root node appears in the cutflow
+   * This version is only available if the branch namer class is default
+   * constructible.
+   */
+  template <typename BranchNamer = DefaultBranchNamer>
+    std::enable_if_t<std::is_default_constructible<BranchNamer>{}, std::shared_ptr<Node<BranchNamer>>> createROOT(
+        const RNode& rnode,
+        const std::string& name = "ROOT",
+        const std::string& cutflowName = "Number of events")
+    {
+      return createROOT(rnode, BranchNamer(), name, cutflowName);
+    }
 
 } //> end namespace RDFAnalysis
 #include "RDFAnalysis/Node.icc"
