@@ -3,8 +3,10 @@
 
 // Package includes
 #include "RDFAnalysis/DefaultBranchNamer.h"
+#include "RDFAnalysis/EmptyDetail.h"
 #include "RDFAnalysis/Helpers.h"
 #include "RDFAnalysis/SysResultPtr.h"
+#include "RDFAnalysis/NodeFwd.h"
 
 // ROOT includes
 #include "ROOT/RDataFrame.hxx"
@@ -17,12 +19,14 @@
 
 namespace RDFAnalysis {
   using RNode = ROOT::RDF::RNode;
-  template <typename BranchNamer = DefaultBranchNamer>
-  class Node : public std::enable_shared_from_this<Node<BranchNamer>> 
+  template <typename BranchNamer, typename Detail>
+  class Node : public std::enable_shared_from_this<Node<BranchNamer, Detail>> 
   {
     public:
       /// Typedefs
       using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
+      using namer_t = BranchNamer;
+      using detail_t = Detail;
 
       /**
        * @brief Define a new variable on this node
@@ -217,6 +221,11 @@ namespace RDFAnalysis {
       SysResultPtr<std::pair<float, float>> weightedStats()
       { return m_weightedStats; }
 
+      /// Get the node details
+      Detail& detail() { return m_detail; }
+      /// (Const) get the node details
+      const Detail& detail() const { return m_detail; }
+
       /// Get the parent of this node
       Node* getParent() { return m_parent; }
       const Node* getParent() const { return m_parent; }
@@ -303,6 +312,9 @@ namespace RDFAnalysis {
 
       /// The weight on this node
       std::string m_weight;
+
+      /// The node's details
+      Detail m_detail;
   }; //> end class Node
 
   /**

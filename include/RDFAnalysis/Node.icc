@@ -2,8 +2,8 @@
 #define RDFAnalysis_Node_ICC
 
 namespace RDFAnalysis {
-  template <typename BranchNamer> template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer>>> Node<BranchNamer>::Define(
+  template <typename BranchNamer, typename Detail> template <typename F>
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::Define(
         const std::string& name,
         F f,
         const ColumnNames_t& columns)
@@ -34,8 +34,8 @@ namespace RDFAnalysis {
       return this->shared_from_this();
     }
 
-  template <typename BranchNamer>
-    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Define(
+  template <typename BranchNamer, typename Detail>
+    std::shared_ptr<Node<BranchNamer, Detail>> Node<BranchNamer, Detail>::Define(
         const std::string& name,
         const std::string& expression)
     {
@@ -43,8 +43,8 @@ namespace RDFAnalysis {
       return Define(name, expanded.first, expanded.second);
     }
 
-  template <typename BranchNamer>
-    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Define(
+  template <typename BranchNamer, typename Detail>
+    std::shared_ptr<Node<BranchNamer, Detail>> Node<BranchNamer, Detail>::Define(
         const std::string& name,
         const std::string& expression,
         const ColumnNames_t& columns)
@@ -76,8 +76,8 @@ namespace RDFAnalysis {
       return this->shared_from_this();
     }
 
-  template <typename BranchNamer> template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer>>> Node<BranchNamer>::Filter(
+  template <typename BranchNamer, typename Detail> template <typename F>
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::Filter(
         F f,
         const ColumnNames_t& columns,
         const std::string& name,
@@ -124,8 +124,8 @@ namespace RDFAnalysis {
       return child;
     }
 
-  template <typename BranchNamer>
-    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Filter(
+  template <typename BranchNamer, typename Detail>
+    std::shared_ptr<Node<BranchNamer, Detail>> Node<BranchNamer, Detail>::Filter(
         const std::string& expression,
         const std::string& name,
         const std::string& cutflowName)
@@ -134,8 +134,8 @@ namespace RDFAnalysis {
       return Filter(expanded.first, expanded.second, name, cutflowName);
     }
 
-  template <typename BranchNamer>
-    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::Filter(
+  template <typename BranchNamer, typename Detail>
+    std::shared_ptr<Node<BranchNamer, Detail>> Node<BranchNamer, Detail>::Filter(
         const std::string& expression,
         const ColumnNames_t& columns,
         const std::string& name,
@@ -184,8 +184,8 @@ namespace RDFAnalysis {
       return child;
     }
 
-  template <typename BranchNamer> template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer>>> Node<BranchNamer>::setWeight(
+  template <typename BranchNamer, typename Detail> template <typename F>
+    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::setWeight(
         F f,
         const ColumnNames_t& columns, 
         bool multiplicative)
@@ -212,8 +212,8 @@ namespace RDFAnalysis {
       return this->shared_from_this();
     }
 
-  template <typename BranchNamer>
-    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::setWeight(
+  template <typename BranchNamer, typename Detail>
+    std::shared_ptr<Node<BranchNamer, Detail>> Node<BranchNamer, Detail>::setWeight(
         const std::string& expression,
         bool multiplicative)
     {
@@ -237,8 +237,8 @@ namespace RDFAnalysis {
       return this->shared_from_this();
     }
 
-  template <typename BranchNamer>
-    std::shared_ptr<Node<BranchNamer>> Node<BranchNamer>::setWeight(
+  template <typename BranchNamer, typename Detail>
+    std::shared_ptr<Node<BranchNamer, Detail>> Node<BranchNamer, Detail>::setWeight(
         const std::string& expression,
         const ColumnNames_t& columns,
         bool multiplicative)
@@ -262,8 +262,8 @@ namespace RDFAnalysis {
       return this->shared_from_this();
     }
 
-  template <typename BranchNamer> template <typename T>
-    SysResultPtr<T> Node<BranchNamer>::Fill(
+  template <typename BranchNamer, typename Detail> template <typename T>
+    SysResultPtr<T> Node<BranchNamer, Detail>::Fill(
         const T& model,
         const ColumnNames_t& columns)
     {
@@ -301,8 +301,8 @@ namespace RDFAnalysis {
       return result;      
     }
 
-  template <typename BranchNamer>
-    Node<BranchNamer>::Node(
+  template <typename BranchNamer, typename Detail>
+    Node<BranchNamer, Detail>::Node(
         const RNode& rnode,
         const BranchNamer& namer,
         const std::string& name,
@@ -313,7 +313,8 @@ namespace RDFAnalysis {
       m_cutflowName(cutflowName),
       m_rootRNode(&m_rnodes.at(m_namer.nominalName() ) ),
       m_stats(m_namer.nominalName() ),
-      m_weightedStats(m_namer.nominalName() )
+      m_weightedStats(m_namer.nominalName() ),
+      m_detail(*this)
     {
       m_namer.readBranchList(m_rnodes);
       m_stats.addResult(
@@ -321,8 +322,8 @@ namespace RDFAnalysis {
           m_rnodes.at(m_namer.nominalName() ).Count() );
     }
 
-  template <typename BranchNamer>
-    Node<BranchNamer>::Node(
+  template <typename BranchNamer, typename Detail>
+    Node<BranchNamer, Detail>::Node(
         Node& parent,
         std::map<std::string, RNode>&& rnodes,
         const std::string& name,
@@ -335,7 +336,8 @@ namespace RDFAnalysis {
       m_rootRNode(parent.m_rootRNode),
       m_stats(m_namer.nominalName() ),
       m_weightedStats(m_namer.nominalName() ),
-      m_weight(parent.getWeight() )
+      m_weight(parent.getWeight() ),
+      m_detail(*this)
     {
       for (auto& nodePair : m_rnodes) {
         m_stats.addResult(nodePair.first, nodePair.second.Count() );
@@ -344,15 +346,15 @@ namespace RDFAnalysis {
         setupWeightedStatistics();
     }
 
-  template <typename BranchNamer>
-    std::string Node<BranchNamer>::nameWeight()
+  template <typename BranchNamer, typename Detail>
+    std::string Node<BranchNamer, Detail>::nameWeight()
     {
       // Construct the name of the node by hashing the pointer
       return "_NodeWeight_"+std::to_string(std::hash<Node*>()(this) )+"_";
     }
 
-  template <typename BranchNamer>
-    void Node<BranchNamer>::setupWeightedStatistics()
+  template <typename BranchNamer, typename Detail>
+    void Node<BranchNamer, Detail>::setupWeightedStatistics()
     {
       // Clear out anything that was already there.
       m_weightedStats.reset();
