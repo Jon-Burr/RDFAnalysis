@@ -3,7 +3,7 @@
 
 namespace RDFAnalysis {
   template <typename BranchNamer, typename Detail> template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::Define(
+    enable_ifn_string_t<F, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::Define(
         const std::string& name,
         F f,
         const ColumnNames_t& columns)
@@ -77,7 +77,7 @@ namespace RDFAnalysis {
     }
 
   template <typename BranchNamer, typename Detail> template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::Filter(
+    enable_ifn_string_t<F, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::Filter(
         F f,
         const ColumnNames_t& columns,
         const std::string& name,
@@ -185,7 +185,7 @@ namespace RDFAnalysis {
     }
 
   template <typename BranchNamer, typename Detail> template <typename F>
-    std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::setWeight(
+    enable_ifn_string_t<F, std::shared_ptr<Node<BranchNamer, Detail>>> Node<BranchNamer, Detail>::setWeight(
         F f,
         const ColumnNames_t& columns, 
         bool multiplicative)

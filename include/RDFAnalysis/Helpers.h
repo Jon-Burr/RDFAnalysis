@@ -73,6 +73,10 @@ namespace RDFAnalysis {
     return poolSize == 0 ? 1 : poolSize;
   }
 
+  /// Reduce size of enable_if statements
+  template <typename F, typename T>
+    using enable_ifn_string_t = std::enable_if_t<!std::is_convertible<F, std::string>{}, T>;
+
 }; //> end namespace RDFAnalysis
 
 #endif //> !RDFAnalysis_Helpers_H

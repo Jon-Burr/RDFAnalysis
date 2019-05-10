@@ -38,7 +38,7 @@ namespace RDFAnalysis {
        * The new column's data type will be the return type of the functor
        */
       template <typename F>
-        std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> Define(
+          enable_ifn_string_t<F, std::shared_ptr<Node>> Define(
             const std::string& name,
             F f,
             const ColumnNames_t& columns = {});
@@ -80,8 +80,7 @@ namespace RDFAnalysis {
        * @param cutflowName How the new node appears in the cutflow
        */
       template <typename F>
-        std::enable_if_t<!std::is_convertible<F, std::string>{},
-        std::shared_ptr<Node>> Filter(
+        enable_ifn_string_t<F, std::shared_ptr<Node>> Filter(
             F f,
             const ColumnNames_t& columns = {},
             const std::string& name = "",
@@ -125,7 +124,7 @@ namespace RDFAnalysis {
        * The new weight will be calculated and stored in a new branch.
        */
       template <typename F>
-        std::enable_if_t<!std::is_convertible<F, std::string>{}, std::shared_ptr<Node>> setWeight(
+        enable_ifn_string_t<F, std::shared_ptr<Node>> setWeight(
             F f,
             const ColumnNames_t& columns = {},
             bool multiplicative = true);
