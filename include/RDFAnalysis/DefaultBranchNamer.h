@@ -3,16 +3,12 @@
 
 // STL includes
 #include <map>
-#include <string>
-#include <vector>
-#include <set>
-#include <memory>
 
-// ROOT includes
-#include <ROOT/RDataFrame.hxx>
+// package includes
+#include <RDFAnalysis/IBranchNamer.h>
 
 namespace RDFAnalysis {
-  class DefaultBranchNamer {
+  class DefaultBranchNamer : public IBranchNamer {
     public:
       /**
       * @brief Construct the namer
@@ -43,33 +39,18 @@ namespace RDFAnalysis {
        */
       std::string nameBranch(
           const std::string& branch,
-          const std::string& systName = "") const;
-
-      /**
-       * @brief Get the full names of a list of branches
-       * @param branches The base name of the branches
-       * @param systName The name of the variation
-       * Search for a variation \ref systName on a branch \ref branch. If one
-       * doesn't exist then it will return the nominal branch. If that doesn't
-       * exist it will throw a std::out_of_range exception.
-       */
-      std::vector<std::string> nameBranches(
-          const std::vector<std::string>& branches,
-          const std::string& systName = "") const;
+          const std::string& systName = "") const override;
 
       /**
        * @brief Get the full name of a branch
        * @param branch The base name of the branch
        * @param systName The name of the variation
-       * @param isRNodeSys whether the ROOT::RNode the new branch will be added
-       * to is specific to this systematic.
        * Create a new variation \systName of branch \ref branch. If this already
        * exists then a std::runtime_error will be thrown.
        */
       std::string createBranch(
           const std::string& branch,
-          const std::string& systName = "",
-          bool isRNodeSys = false);
+          const std::string& systName = "") override;
 
       /**
        * @brief Test if a specific variation of a specific branch exists
@@ -78,26 +59,23 @@ namespace RDFAnalysis {
        */
       bool exists(
           const std::string& branch,
-          const std::string& systName = "") const;
+          const std::string& systName = "") const override;
 
       /**
        * @brief Get the full name of a branch
        * @param branch The base name of the branch
        * @param systName The name of the variation
-       * @param isRNodeSys If this branch is to be added to a ROOT::RNode
-       * specific to this systematic.
        */
       std::string newBranchName(
           const std::string& branch,
-          const std::string& systName = "",
-          bool isRNodeSys = false) const;
+          const std::string& systName = "") const;
 
-      const std::string& nominalName() const { return m_nominalName; }
+      const std::string& nominalName() const override { return m_nominalName; }
 
       /**
        * @brief Get all systematics.
        */
-      std::vector<std::string> systematics() const
+      std::vector<std::string> systematics() const override
       { return m_systematics; }
 
       /**
@@ -105,33 +83,21 @@ namespace RDFAnalysis {
        * @param branch The name of the branch to test
        */
       std::set<std::string> systematicsAffecting(
-          const std::string& branch) const;
-
-      /**
-       * @brief Get all the systematics affecting a set of columns.
-       * @param branches The names of the branches to test
-       */
-      std::set<std::string> systematicsAffecting(
-          const std::vector<std::string>& branches) const;
+          const std::string& branch) const override;
 
       /**
        * @brief Get all branch base names
        */
-      std::vector<std::string> branches() const;
-
-      std::pair<std::string, std::vector<std::string>> expandExpression(
-          const std::string& expression) const;
-
-      std::string interpretExpression(
-          const std::string& expression,
-          const std::vector<std::string>& branches,
-          const std::string& systematic);
+      std::vector<std::string> branches() const override;
 
       /**
        * @brief Set the node that this namer is looking at
        * @param rnodes The input rnodes.
        */
-       void readBranchList( const std::map<std::string, ROOT::RDF::RNode>& rnodes );
+       void readBranchList( const std::map<std::string, ROOT::RDF::RNode>& rnodes ) override;
+
+       std::unique_ptr<IBranchNamer> copy() const override
+       { return std::make_unique<DefaultBranchNamer>(*this); }
     private:
 
       /// The branches
@@ -150,6 +116,6 @@ namespace RDFAnalysis {
       /// The name of the nominal variation
       std::string m_nominalName{"NOSYS"};
 
-  }; //> end class BranchNamer
+  }; //> end class DefaultBranchNamer
 } //> end namespace RDFAnalysis
 #endif //> !RDFAnalysis_BranchNamer_H

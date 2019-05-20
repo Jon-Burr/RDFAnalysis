@@ -2,11 +2,12 @@
 #define RDFAnalysis_Node_H
 
 // Package includes
-#include "RDFAnalysis/DefaultBranchNamer.h"
+#include "RDFAnalysis/IBranchNamer.h"
 #include "RDFAnalysis/EmptyDetail.h"
 #include "RDFAnalysis/Helpers.h"
 #include "RDFAnalysis/SysResultPtr.h"
 #include "RDFAnalysis/NodeFwd.h"
+#include "RDFAnalysis/SysVar.h"
 
 // ROOT includes
 #include "ROOT/RDataFrame.hxx"
@@ -19,13 +20,12 @@
 
 namespace RDFAnalysis {
   using RNode = ROOT::RDF::RNode;
-  template <typename BranchNamer, typename Detail>
-  class Node : public std::enable_shared_from_this<Node<BranchNamer, Detail>> 
+  using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
+  template <typename Detail>
+  class Node : public std::enable_shared_from_this<Node<Detail>> 
   {
     public:
       /// Typedefs
-      using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
-      using namer_t = BranchNamer;
       using detail_t = Detail;
 
       /**
@@ -180,6 +180,30 @@ namespace RDFAnalysis {
             const T& model,
             const ColumnNames_t& columns);
 
+      template <typename T, typename... TrArgs, typename... Args>
+        std::map<std::string, T> Act(
+            std::function<T(RNode&, TrArgs...)> f,
+            const ColumnNames_t& columns,
+            Args&&... args);
+
+      template <typename F, typename... Args>
+        std::map<std::string, typename ROOT::TTraits::CallableTraits<F>::ret_type> Act(
+            F&& f,
+            const ColumnNames_t& columns,
+            Args&&... args)
+        {
+          return Act(
+              std::function<typename ROOT::TTraits::CallableTraits<F>::ret_type(RNode&, typename sysvar_traits<Args&&>::value_type...)>(f),
+              columns,
+              std::forward<Args>(args)...);
+        }
+
+      template <typename T, typename... TrArgs, typename... Args>
+        std::map<std::string, T> Act(
+            T (RNode::*f)(TrArgs&&...),
+            const ColumnNames_t& columns,
+            Args&&... args);
+
       /// Get the name
       const std::string& name() const { return m_name; }
 
@@ -191,9 +215,10 @@ namespace RDFAnalysis {
 
       /// Get the RNode objects
       const std::map<std::string, RNode>& rnodes() const { return m_rnodes; }
+      std::map<std::string, RNode>& rnodes() { return m_rnodes; }
 
       /// The namer
-      const BranchNamer& namer() const { return m_namer; }
+      const IBranchNamer& namer() const { return *m_namer; }
 
       /// Get the ROOT RNode
       const RNode& rootRNode() const { return *m_rootRNode; }
@@ -232,19 +257,57 @@ namespace RDFAnalysis {
       /// Is the node the root?
       bool isRoot() const { return m_parent == nullptr; }
 
-    private:
-      template <typename B>
-        friend std::shared_ptr<Node<B>> createROOT(
-            const RNode&,
-            const B&,
-            const std::string&,
-            const std::string&);
+      static std::shared_ptr<Node> createROOT(
+          const RNode& rnode,
+          std::unique_ptr<IBranchNamer>&& namer,
+          const std::string& name = "ROOT",
+          const std::string& cutflowName = "Number of events")
+      {
+        return std::shared_ptr<Node>(
+            new Node(rnode, std::move(namer), name, cutflowName) );
+      }
 
-      template <typename B>
-        friend std::enable_if_t<std::is_default_constructible<B>{}, std::shared_ptr<Node<B>>> createROOT(
+    private:
+      template <typename D>
+        friend std::shared_ptr<Node<D>> createROOT(
             const RNode&,
+            const std::unique_ptr<IBranchNamer>&&,
             const std::string&,
-            const std::string&);
+            const std::string& cutflowName);
+      /* template <typename B> */
+      /*   friend std::shared_ptr<Node<B>> createROOT( */
+      /*       const RNode&, */
+      /*       const B&, */
+      /*       const std::string&, */
+      /*       const std::string&); */
+
+      /* template <typename B> */
+      /*   friend std::enable_if_t<std::is_default_constructible<B>{}, std::shared_ptr<Node<B>>> createROOT( */
+      /*       const RNode&, */
+      /*       const std::string&, */
+      /*       const std::string&); */
+
+/*       template <typename T, typename F> */
+/*         std::map<std::string, T> ActImpl( */
+/*             std::function<T(const std::string&, RNode&, F, const ColumnNames_t&)> action, */
+/*             FunctorExpression<F>&& expression); */
+
+/*       template <typename T> */
+/*         std::map<std::string, T> ActImpl( */
+/*             std::function<T(const std::string&, RNode&, const std::string&)> action, */
+/*             StringExpression&& expression); */
+
+/*       template <typename T, typename F> */
+/*         std::map<std::string, T> ActImplConditional( */
+/*             std::function<T(const std::string&, RNode&, F, const ColumnNames_t&)> dedicatedAction, */
+/*             std::function<T(const std::string&, RNode&, F, const ColumnNames_t&)> nominalAction, */
+/*             FunctorExpression<F>&& expression); */
+
+/*       template <typename T> */
+/*         std::map<std::string, T> ActImplConditional( */
+/*             std::function<T(const std::string&, RNode&, const std::string&)> dedicatedAction, */
+/*             std::function<T(const std::string&, RNode&, const std::string&)> nominalAction, */
+/*             StringExpression&& expression); */
 
       /**
        * @brief Create the root node of the tree
@@ -256,7 +319,7 @@ namespace RDFAnalysis {
        */
       Node(
           const RNode& rnode,
-          const BranchNamer& namer,
+          std::unique_ptr<IBranchNamer>&& namer,
           const std::string& name = "ROOT",
           const std::string& cutflowName = "Number of events");
 
@@ -286,7 +349,7 @@ namespace RDFAnalysis {
       std::map<std::string, RNode> m_rnodes;      
 
       /// The branch namer
-      BranchNamer m_namer;
+      std::unique_ptr<IBranchNamer> m_namer;
 
       /// The Node's name
       std::string m_name;
@@ -318,40 +381,21 @@ namespace RDFAnalysis {
 
   /**
    * @brief Create the root node of the tree
-   * @tparam BranchNamer The branch naming class
    * @param rnode The RDataFrame that forms the base of the tree
    * @param namer The branch namer
    * @param name The name of the root node
    * @param cutflowName How the root node appears in the cutflow
    */
-  template <typename BranchNamer = DefaultBranchNamer>
-    std::shared_ptr<Node<BranchNamer>> createROOT(
-        const RNode& rnode,
-        const BranchNamer& namer,
-        const std::string& name = "ROOT",
-        const std::string& cutflowName = "Number of events")
-    {
-      return std::shared_ptr<Node<BranchNamer>>(
-          new Node<BranchNamer>(rnode, namer, name, cutflowName) );
-    }
-
-  /**
-   * @brief Create the root node of the tree
-   * @tparam BranchNamer The branch naming class
-   * @param rnode The RDataFrame that forms the base of the tree
-   * @param name The name of the root node
-   * @param cutflowName How the root node appears in the cutflow
-   * This version is only available if the branch namer class is default
-   * constructible.
-   */
-  template <typename BranchNamer = DefaultBranchNamer>
-    std::enable_if_t<std::is_default_constructible<BranchNamer>{}, std::shared_ptr<Node<BranchNamer>>> createROOT(
-        const RNode& rnode,
-        const std::string& name = "ROOT",
-        const std::string& cutflowName = "Number of events")
-    {
-      return createROOT(rnode, BranchNamer(), name, cutflowName);
-    }
+  /* template <typename Detail=EmptyDetail> */
+  /* std::shared_ptr<Node<Detail>> createROOT( */
+  /*     const RNode& rnode, */
+  /*     std::unique_ptr<IBranchNamer>&& namer, */
+  /*     const std::string& name = "ROOT", */
+  /*     const std::string& cutflowName = "Number of events") */
+  /* { */
+  /*   return std::shared_ptr<Node<Detail>>( */
+  /*       new Node<Detail>(rnode, std::move(namer), name, cutflowName) ); */
+  /* } */
 
 } //> end namespace RDFAnalysis
 #include "RDFAnalysis/Node.icc"

@@ -77,7 +77,7 @@ namespace RDFAnalysis {
   template <typename F, typename T>
     using enable_ifn_string_t = std::enable_if_t<!std::is_convertible<F, std::string>{}, T>;
 
-  /// Apply is C++17... TODO try an experimental import!
+  /// Apply is C++17... 
   template <typename F, typename... Ts, std::size_t... Is>
     constexpr decltype(auto) apply_impl(F&& f, std::tuple<Ts...>&& args, std::index_sequence<Is...>)
     {

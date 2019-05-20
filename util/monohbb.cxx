@@ -12,7 +12,10 @@
 #include <boost/algorithm/string/join.hpp>
 #include <fstream>
 
-using node_t = RDFAnalysis::Node<RDFAnalysis::DefaultBranchNamer>;
+#include "RDFAnalysis/SysVar.h"
+
+/* using node_t = RDFAnalysis::Node<RDFAnalysis::DefaultBranchNamer>; */
+using node_t = RDFAnalysis::Node<>;
 
 namespace {
   TH1F HPt("HiggsPt", ";p_T(H, true) [MeV]", 500, 0, 2e6);
@@ -89,9 +92,9 @@ int main(int argc, char* argv[]) {
         systematics.push_back(line);
   }
 
-  auto root = RDFAnalysis::createROOT(
+  auto root = node_t::createROOT(
       ROOT::RDataFrame(input),
-      RDFAnalysis::DefaultBranchNamer(systematics, true, false) );
+      std::make_unique<RDFAnalysis::DefaultBranchNamer>(systematics, true, false) );
   root->setWeight("MCEventWeight*pileupWeight");
 
   root->
@@ -125,9 +128,10 @@ int main(int argc, char* argv[]) {
   basicPlots(resolved, "mjjR04");
   auto resolved2b = resolved->Filter("NbjjR04 >= 2", "TwoBJets", "n_B (jj) >=2");
   basicPlots(resolved2b, "mjjR04");
-  auto merged = met150->Filter("SelFatJetPt.size() > 0 && SelFatJetPt[0] > 200e3", "OneFatJet", "p_T (J0) > 200 GeV");
-  merged->Define("mJ", "SelFatJetMass[0]");
-  merged->Define("mJMuCorr", "SelMuCorrFatJetMass[0]");
+  auto merged = met150->Filter("SelFatJetPt.size() > 0 && SelFatJetPt[0] > 200e3", "OneFatJet", "p_T (J0) > 200 GeV")->
+    Define("mJ", "SelFatJetMass[0]")->
+    Define("mJMuCorr", "SelMuCorrFatJetMass[0]");
+
   basicPlots(merged, "mJ");
   basicPlots(merged, "mJMuCorr", "massWindowMuCorr");
   auto merged2b = merged->Filter("SelFatJetNTrackBJets[0] >= 2 && SelFatJetPassDRCut[0]", "TwoBVRJets", "n_B (VR) >= 2");

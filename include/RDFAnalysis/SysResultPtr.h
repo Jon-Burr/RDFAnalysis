@@ -23,6 +23,9 @@ namespace RDFAnalysis {
         /// Allow access to the underlying map
         std::map<std::string, ResultWrapper<T>>& asMap() { return m_wrappers; }
 
+        /// Set from a map
+        void setMap(const std::map<std::string, ResultWrapper<T>>& newMap) { m_wrappers = newMap; }
+
         /// Reset all results
         void reset() { m_wrappers.clear(); }
 

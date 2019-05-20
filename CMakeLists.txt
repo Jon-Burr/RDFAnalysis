@@ -18,6 +18,7 @@ target_include_directories( RDFAnalysis
 # Add the sources
 target_sources( RDFAnalysis
     PRIVATE
+      src/IBranchNamer.cxx
       src/DefaultBranchNamer.cxx
     )
 
