@@ -20,6 +20,7 @@ target_sources( RDFAnalysis
     PRIVATE
       src/IBranchNamer.cxx
       src/DefaultBranchNamer.cxx
+      src/NodeBase.cxx
     )
 
 # Link ROOT

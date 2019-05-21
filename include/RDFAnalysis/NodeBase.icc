@@ -1,0 +1,194 @@
+#ifndef RDFAnalysis_NodeBase_ICC
+#define RDFAnalysis_NodeBase_ICC
+
+#include <utility>
+#include <tuple>
+#include <iostream>
+
+namespace RDFAnalysis {
+  template <typename T, typename... TrArgs, typename... Args>
+    std::map<std::string, T> NodeBase::Act(
+        std::function<T(RNode&, TrArgs...)> f,
+        const ColumnNames_t& columns,
+        Args&&... args)
+    {
+      // Prepare the output
+      std::map<std::string, T> result;
+      // First work out which systematics affect this action
+      std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
+
+      // For each existing RNode apply the action to it
+      for (auto& rnodePair : m_rnodes) {
+        // Remove this systematic from future consideration
+        affecting.erase(rnodePair.first);
+        result.insert(std::make_pair(
+              rnodePair.first,
+              f(rnodePair.second,
+                sysVarTranslate(
+                  std::forward<Args>(args),
+                  *m_namer,
+                  rnodePair.first)...) ) );
+      }
+
+      // Now iterate over the remaining systematics and add the definition to
+      // the nominal
+      RNode& nominal = m_rnodes.at(m_namer->nominalName() );
+      for (const std::string& syst : affecting)
+        result.insert(std::make_pair(
+              syst,
+              f(nominal,
+                sysVarTranslate(
+                  std::forward<Args>(args),
+                  *m_namer,
+                  syst)...) ) );
+
+      return result;
+    }
+
+  template <typename T, typename... TrArgs, typename... Args>
+    std::map<std::string, T> NodeBase::Act(
+        T (RNode::*f)(TrArgs&&...),
+        const ColumnNames_t& columns,
+        Args&&... args)
+    {
+      // Prepare the output
+      std::map<std::string, T> result;
+      // First work out which systematics affect this action
+      std::set<std::string> affecting = m_namer->systematicsAffecting(columns);
+
+      // For each existing RNode apply the action to it
+      for (auto& rnodePair : m_rnodes) {
+        // Remove this systematic from future consideration
+        affecting.erase(rnodePair.first);
+        result.insert(std::make_pair(
+              (rnodePair.first.*f)(sysVarTranslate(
+                  std::forward<Args>(args),
+                  *m_namer,
+                  rnodePair.first)... ) ) );
+      }
+
+      // Now iterate over the remaining systematics and add the definition to
+      // the nominal
+      RNode& nominal = m_rnodes.at(m_namer->nominalName() );
+      for (const std::string& syst : affecting)
+        result.insert(std::make_pair(
+              syst,
+              (nominal.*f)(sysVarTranslate(
+                  std::forward<Args>(args),
+                  *m_namer,
+                  syst)...) ) );
+
+      return result;
+    }
+
+  template <typename F>
+    enable_ifn_string_t<F, NodeBase*> NodeBase::Define(
+        const std::string& name,
+        F f,
+        const ColumnNames_t& columns)
+    {
+      // We don't actually use the output of the action so we don't store it.
+      // However we need there to be a return value for the lambda.
+      // Note that this action updates the node passed in.
+      Act([] (RNode& rnode, const std::string& name, F f, const ColumnNames_t& columns) {
+          return rnode = rnode.Define(name, f, columns); },
+          columns,
+          SysVarNewBranch(name),
+          f,
+          SysVarBranchVector(columns) );
+      return this;
+    }
+
+  template <typename F>
+    enable_ifn_string_t<F, std::map<std::string, RNode>> NodeBase::makeChildRNodes(
+        F f,
+        const ColumnNames_t& columns,
+        const std::string& cutflowName)
+    {
+      return Act(
+          [] (RNode& rnode, F f, const ColumnNames_t& columns, const std::string& cutflowName) -> RNode {
+          return rnode.Filter(f, columns, cutflowName); },
+          columns,
+          f,
+          SysVarBranchVector(columns),
+          cutflowName);
+    }
+
+  template <typename F>
+    enable_ifn_string_t<F, std::string> NodeBase::setWeight(
+        F f,
+        const ColumnNames_t& columns, 
+        const std::string& parentWeight)
+    {
+      if (!parentWeight.empty()) {
+        // Adapt f to include the parent weight and call this function with the
+        // new functor and multiplicative set to false
+        ColumnNames_t newColumns = columns;
+        newColumns.push_back(parentWeight);
+        return setWeight(
+            [f] (auto&&... args, const double& parentWeight) {
+              return parentWeight * f(std::forward<decltype(args)>(args)...);
+            },
+            newColumns,
+            false);
+      }
+      else {
+        std::string weight = nameWeight();
+        // Define the new weight
+        Define(weight, f, columns);
+        // Reset the weighted node statistics
+        /* setupWeightedStatistics(); */
+        return weight;
+      }
+    }
+
+  template <typename T>
+    SysResultPtr<T> NodeBase::Fill(
+        const T& model,
+        const ColumnNames_t& columns)
+    {
+      // Create the result pointer
+      SysResultPtr<T> result(m_namer->nominalName() );
+      // Get the action's results
+      auto actOutMap = Act(
+          [] (RNode& rnode, T&& t, const ColumnNames_t& col) { return rnode.Fill(T(t), col); },
+          columns,
+          T(model),
+          SysVarBranchVector(columns) );
+      // Load them into the output
+      for (const auto& actPair : actOutMap)
+        result.addResult(actPair.first, actPair.second);
+      // We won't write the contents of anonymous nodes so don't even keep them
+      // here
+      if (!isAnonymous() )
+        m_objects.push_back(result);
+      return result;      
+    }
+
+  template <typename W>
+    NodeBase::NodeBase(
+        const RNode& rnode,
+        std::unique_ptr<IBranchNamer>&& namer,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& columns) :
+      m_rnodes({{namer->nominalName(), rnode}}),
+      m_namer(std::move(namer) ),
+      m_namerInit(*m_namer, m_rnodes),
+      m_name(name),
+      m_cutflowName(cutflowName),
+      m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
+      m_weight(setWeight(w, columns, "") ),
+      m_stats(m_namer->nominalName() ),
+      m_weightedStats(m_namer->nominalName() )
+    {
+      m_stats.addResult(
+          m_namer->nominalName(), 
+          m_rnodes.at(m_namer->nominalName() ).Count() );
+      if (!m_weight.empty() )
+        setupWeightedStatistics();
+    }
+}
+
+#endif //> !RDFAnalysis_NodeBase_ICC
