@@ -21,7 +21,7 @@ namespace {
   TH1F HPt("HiggsPt", ";p_T(H, true) [MeV]", 500, 0, 2e6);
   TH1F Mass("HiggsMass", ";m(H candidate) [MeV]", 80, 70e3, 150e3);
   TH2F MassPt("HiggsMassPt", ";p_T(H, true) [MeV]; m(H candidate) [MeV]", 20, 0, 2e6, 80, 70e3, 150e3);
-  void basicPlots(std::shared_ptr<node_t> node, std::string massVar, std::string folder="massWindow") {
+  void basicPlots(node_t* node, std::string massVar, std::string folder="massWindow") {
     auto massWindow = node->Filter("70e3 < " + massVar + " && " + massVar + " < 150e3", folder, "70 < m_H < 150 GeV");
     massWindow->Fill(HPt, {"pTbbTruth"});
     massWindow->Fill(Mass, {massVar});
@@ -94,8 +94,10 @@ int main(int argc, char* argv[]) {
 
   auto root = node_t::createROOT(
       ROOT::RDataFrame(input),
-      std::make_unique<RDFAnalysis::DefaultBranchNamer>(systematics, true, false) );
-  root->setWeight("MCEventWeight*pileupWeight");
+      std::make_unique<RDFAnalysis::DefaultBranchNamer>(systematics, true, false),
+      "ROOT",
+      "Number of events",
+      "MCEventWeight*pileupWeight");
 
   root->
     Define("SelJetPt", "JetPt[JetIsSignal]")->

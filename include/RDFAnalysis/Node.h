@@ -22,7 +22,7 @@ namespace RDFAnalysis {
   using RNode = ROOT::RDF::RNode;
   using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
   template <typename Detail>
-  class Node : public std::enable_shared_from_this<Node<Detail>> 
+  class Node
   {
     public:
       /// Typedefs
@@ -34,11 +34,11 @@ namespace RDFAnalysis {
        * @param name The name of the column to define
        * @param f The functor
        * @param columns The input variables (if any) to the functor
-       * @return A shared pointer to this object.
+       * @return A non-owning pointer to this object.
        * The new column's data type will be the return type of the functor
        */
       template <typename F>
-          enable_ifn_string_t<F, std::shared_ptr<Node>> Define(
+          enable_ifn_string_t<F, Node*> Define(
             const std::string& name,
             F f,
             const ColumnNames_t& columns = {});
@@ -47,11 +47,11 @@ namespace RDFAnalysis {
        * @brief Define a new variable on this node
        * @param name The name of the column to define
        * @param expression The string expression to interpret
-       * @return A shared pointer to this object.
+       * @return A non-owning pointer to this object.
        * The new column's data type will be the return type of the JITted
        * function
        */
-      std::shared_ptr<Node> Define(
+      Node* Define(
           const std::string& name,
           const std::string& expression);
 
@@ -60,13 +60,13 @@ namespace RDFAnalysis {
        * @param name The name of the column to define
        * @param expression The string expression to interpret
        * @param columns The input variables to the expression
-       * @return A shared pointer to this object.
+       * @return A non-owning pointer to this object.
        * The new column's data type will be the return type of the JITted
        * function. The expression should have the column names replaced by
        * placeholders like {idx} (where idx is the index of the branch in the
        * columns vector).
        */
-      std::shared_ptr<Node> Define(
+      Node* Define(
           const std::string& name,
           const std::string& expression,
           const ColumnNames_t& columns);
@@ -80,7 +80,7 @@ namespace RDFAnalysis {
        * @param cutflowName How the new node appears in the cutflow
        */
       template <typename F>
-        enable_ifn_string_t<F, std::shared_ptr<Node>> Filter(
+        enable_ifn_string_t<F, Node*> Filter(
             F f,
             const ColumnNames_t& columns = {},
             const std::string& name = "",
@@ -92,7 +92,7 @@ namespace RDFAnalysis {
        * @param name The name of the new node
        * @param cutflowName How the new node appears in the cutflow
        */
-      std::shared_ptr<Node> Filter(
+      Node* Filter(
           const std::string& expression,
           const std::string& name = "",
           const std::string& cutflowName = "");
@@ -107,57 +107,11 @@ namespace RDFAnalysis {
        * like {idx} (where idx is the index of the branch in the columns
        * vector).
        */
-      std::shared_ptr<Node> Filter(
+      Node* Filter(
           const std::string& expression,
           const ColumnNames_t& columns,
           const std::string& name = "",
           const std::string& cutflowName = "");
-
-      /**
-       * @brief Set the weight on this node
-       * @tparam F the functor type
-       * @param f The functor
-       * @param columns The input columns to \ref f (if any)
-       * @param multiplicative Whether to multiply by the weight (if any) set on
-       * the previous node.
-       * @return shared pointer to this
-       * The new weight will be calculated and stored in a new branch.
-       */
-      template <typename F>
-        enable_ifn_string_t<F, std::shared_ptr<Node>> setWeight(
-            F f,
-            const ColumnNames_t& columns = {},
-            bool multiplicative = true);
-
-      /**
-       * @brief Set the weight on this node
-       * @param expression The expression to calculate the weight
-       * @param multiplicative Whether to multiply by the weight (if any) set on
-       * the previous node.
-       * @return shared pointer to this
-       * The new weight will be calculated and stored in a new branch.
-       */
-      std::shared_ptr<Node> setWeight(
-          const std::string& expression,
-          bool multiplicative = true);
-
-      /**
-       * @brief Set the weight on this node
-       * @param expression The expression to calculate the weight
-       * @param columns The input variables to the expression
-       * @param multiplicative Whether to multiply by the weight (if any) set on
-       * the previous node.
-       * @return shared pointer to this
-       * The new weight will be calculated and stored in a new branch.
-       * The expression should have the column names replaced by placeholders
-       * like {idx} (where idx is the index of the branch in the columns
-       * vector).
-       */
-      std::shared_ptr<Node> setWeight(
-          const std::string& expression,
-          const ColumnNames_t& columns,
-          bool multiplicative = true);
-
       /**
        * @brief Get the name of the weight branch.
        * The name returned will be the base name, not resolved for any
@@ -257,71 +211,59 @@ namespace RDFAnalysis {
       /// Is the node the root?
       bool isRoot() const { return m_parent == nullptr; }
 
-      static std::shared_ptr<Node> createROOT(
+      static std::unique_ptr<Node> createROOT(
           const RNode& rnode,
           std::unique_ptr<IBranchNamer>&& namer,
           const std::string& name = "ROOT",
-          const std::string& cutflowName = "Number of events")
+          const std::string& cutflowName = "Number of events",
+          const std::string& weight = "")
       {
-        return std::shared_ptr<Node>(
-            new Node(rnode, std::move(namer), name, cutflowName) );
+        return std::unique_ptr<Node>(
+            new Node(rnode, std::move(namer), name, cutflowName, weight) );
       }
 
     private:
-      template <typename D>
-        friend std::shared_ptr<Node<D>> createROOT(
-            const RNode&,
-            const std::unique_ptr<IBranchNamer>&&,
-            const std::string&,
-            const std::string& cutflowName);
-      /* template <typename B> */
-      /*   friend std::shared_ptr<Node<B>> createROOT( */
-      /*       const RNode&, */
-      /*       const B&, */
-      /*       const std::string&, */
-      /*       const std::string&); */
-
-      /* template <typename B> */
-      /*   friend std::enable_if_t<std::is_default_constructible<B>{}, std::shared_ptr<Node<B>>> createROOT( */
-      /*       const RNode&, */
-      /*       const std::string&, */
-      /*       const std::string&); */
-
-/*       template <typename T, typename F> */
-/*         std::map<std::string, T> ActImpl( */
-/*             std::function<T(const std::string&, RNode&, F, const ColumnNames_t&)> action, */
-/*             FunctorExpression<F>&& expression); */
-
-/*       template <typename T> */
-/*         std::map<std::string, T> ActImpl( */
-/*             std::function<T(const std::string&, RNode&, const std::string&)> action, */
-/*             StringExpression&& expression); */
-
-/*       template <typename T, typename F> */
-/*         std::map<std::string, T> ActImplConditional( */
-/*             std::function<T(const std::string&, RNode&, F, const ColumnNames_t&)> dedicatedAction, */
-/*             std::function<T(const std::string&, RNode&, F, const ColumnNames_t&)> nominalAction, */
-/*             FunctorExpression<F>&& expression); */
-
-/*       template <typename T> */
-/*         std::map<std::string, T> ActImplConditional( */
-/*             std::function<T(const std::string&, RNode&, const std::string&)> dedicatedAction, */
-/*             std::function<T(const std::string&, RNode&, const std::string&)> nominalAction, */
-/*             StringExpression&& expression); */
-
+      struct NamerInitialiser {
+        NamerInitialiser() {} // no-op
+        NamerInitialiser(
+            IBranchNamer& namer,
+            const std::map<std::string, ROOT::RDF::RNode>& rnodes) {
+          namer.readBranchList(rnodes);
+        }
+      };
       /**
        * @brief Create the root node of the tree
        * @param rnode The RDataFrame that forms the base of the tree
        * @param namer The branch namer
        * @param name The name of the root node
        * @param cutflowName How the root node appears in the cutflow
-       * @param 
+       * @param weight Expression to calculate a weight.
        */
       Node(
           const RNode& rnode,
           std::unique_ptr<IBranchNamer>&& namer,
           const std::string& name = "ROOT",
-          const std::string& cutflowName = "Number of events");
+          const std::string& cutflowName = "Number of events",
+          const std::string& weight = "");
+
+      /**
+       * @brief Create the root node of the tree
+       * @tparam W The functor used to calculate the weight
+       * @param rnode The RDataFrame that forms the base of the tree
+       * @param namer The branch namer
+       * @param name The name of the root node
+       * @param cutflowName How the root node appears in the cutflow
+       * @param w Functor used to calculate the weight
+       * @param columns THe input columns for the weight
+       */
+      template <typename W>
+        Node(
+            const RNode& rnode,
+            std::unique_ptr<IBranchNamer>&& namer,
+            const std::string& name,
+            const std::string& cutflowName,
+            W w,
+            const ColumnNames_t& columns);
 
       /**
        * @brief Create a child node
@@ -335,6 +277,52 @@ namespace RDFAnalysis {
           std::map<std::string, RNode>&& rnodes,
           const std::string& name,
           const std::string& cutflowName);
+
+      /**
+       * @brief Set the weight on this node
+       * @tparam F the functor type
+       * @param f The functor
+       * @param columns The input columns to \ref f (if any)
+       * @param multiplicative Whether to multiply by the weight (if any) set on
+       * the previous node.
+       * @return The name of the new weight
+       * The new weight will be calculated and stored in a new branch.
+       */
+      template <typename F>
+        enable_ifn_string_t<F, std::string> setWeight(
+            F f,
+            const ColumnNames_t& columns = {},
+            bool multiplicative = true);
+
+      /**
+       * @brief Set the weight on this node
+       * @param expression The expression to calculate the weight
+       * @param multiplicative Whether to multiply by the weight (if any) set on
+       * the previous node.
+       * @return The name of the new weight
+       * The new weight will be calculated and stored in a new branch.
+       */
+      std::string setWeight(
+          const std::string& expression,
+          bool multiplicative = true);
+
+      /**
+       * @brief Set the weight on this node
+       * @param expression The expression to calculate the weight
+       * @param columns The input variables to the expression
+       * @param multiplicative Whether to multiply by the weight (if any) set on
+       * the previous node.
+       * @return The name of the new weight
+       * The new weight will be calculated and stored in a new branch.
+       * The expression should have the column names replaced by placeholders
+       * like {idx} (where idx is the index of the branch in the columns
+       * vector).
+       */
+      std::string setWeight(
+          const std::string& expression,
+          const ColumnNames_t& columns,
+          bool multiplicative = true);
+
 
       /// Internal function to name the weight branch
       std::string nameWeight();
@@ -351,6 +339,9 @@ namespace RDFAnalysis {
       /// The branch namer
       std::unique_ptr<IBranchNamer> m_namer;
 
+      /// Helper struct to force early initialisation of the namer
+      NamerInitialiser m_namerInit;
+
       /// The Node's name
       std::string m_name;
 
@@ -360,8 +351,11 @@ namespace RDFAnalysis {
       /// Keep a pointer to the ROOT RNode of the whole chain
       RNode* m_rootRNode = nullptr;
 
+      /// The weight on this node
+      std::string m_weight;
+
       /// Any children of this node
-      std::vector<std::shared_ptr<Node>> m_children;
+      std::vector<std::unique_ptr<Node>> m_children;
 
       /// Any TObject pointers declared on this
       std::vector<SysResultPtr<TObject>> m_objects;
@@ -372,30 +366,9 @@ namespace RDFAnalysis {
       /// The node statistics (including weights)
       SysResultPtr<std::pair<float, float>> m_weightedStats;
 
-      /// The weight on this node
-      std::string m_weight;
-
       /// The node's details
       Detail m_detail;
   }; //> end class Node
-
-  /**
-   * @brief Create the root node of the tree
-   * @param rnode The RDataFrame that forms the base of the tree
-   * @param namer The branch namer
-   * @param name The name of the root node
-   * @param cutflowName How the root node appears in the cutflow
-   */
-  /* template <typename Detail=EmptyDetail> */
-  /* std::shared_ptr<Node<Detail>> createROOT( */
-  /*     const RNode& rnode, */
-  /*     std::unique_ptr<IBranchNamer>&& namer, */
-  /*     const std::string& name = "ROOT", */
-  /*     const std::string& cutflowName = "Number of events") */
-  /* { */
-  /*   return std::shared_ptr<Node<Detail>>( */
-  /*       new Node<Detail>(rnode, std::move(namer), name, cutflowName) ); */
-  /* } */
 
 } //> end namespace RDFAnalysis
 #include "RDFAnalysis/Node.icc"

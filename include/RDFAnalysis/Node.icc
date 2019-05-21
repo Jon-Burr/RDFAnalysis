@@ -82,7 +82,7 @@ namespace RDFAnalysis {
     }
 
   template <typename Detail> template <typename F>
-    enable_ifn_string_t<F, std::shared_ptr<Node<Detail>>> Node<Detail>::Define(
+    enable_ifn_string_t<F, Node<Detail>*> Node<Detail>::Define(
         const std::string& name,
         F f,
         const ColumnNames_t& columns)
@@ -96,12 +96,12 @@ namespace RDFAnalysis {
           SysVarNewBranch(name),
           f,
           SysVarBranchVector(columns) );
-      return this->shared_from_this();
+      return this;
     }
 
 
   template <typename Detail>
-    std::shared_ptr<Node<Detail>> Node<Detail>::Define(
+    Node<Detail>* Node<Detail>::Define(
         const std::string& name,
         const std::string& expression)
     {
@@ -110,7 +110,7 @@ namespace RDFAnalysis {
     }
 
   template <typename Detail>
-    std::shared_ptr<Node<Detail>> Node<Detail>::Define(
+    Node<Detail>* Node<Detail>::Define(
         const std::string& name,
         const std::string& expression,
         const ColumnNames_t& columns)
@@ -123,18 +123,18 @@ namespace RDFAnalysis {
           columns,
           SysVarNewBranch(name),
           SysVarStringExpression(expression, columns) );
-      return this->shared_from_this();
+      return this;
     }
 
   template <typename Detail> template <typename F>
-    enable_ifn_string_t<F, std::shared_ptr<Node<Detail>>> Node<Detail>::Filter(
+    enable_ifn_string_t<F, Node<Detail>*> Node<Detail>::Filter(
         F f,
         const ColumnNames_t& columns,
         const std::string& name,
         const std::string& cutflowName)
     {
       // Make sure that there isn't already a node with this name
-      for (const std::shared_ptr<Node>& child : m_children)
+      for (const std::unique_ptr<Node>& child : m_children)
         if (child->name() == name)
           throw std::runtime_error(
               "Attempting to create child '" + name + "' but this node " + 
@@ -147,14 +147,13 @@ namespace RDFAnalysis {
           f,
           SysVarBranchVector(columns),
           cutflowName);
-      std::shared_ptr<Node> child(new Node(
+      m_children.emplace_back(new Node(
             *this, std::move(childRNodes),  name, cutflowName) );
-      m_children.push_back(child);
-      return child;
+      return m_children.back().get();
     }
 
   template <typename Detail>
-    std::shared_ptr<Node<Detail>> Node<Detail>::Filter(
+    Node<Detail>* Node<Detail>::Filter(
         const std::string& expression,
         const std::string& name,
         const std::string& cutflowName)
@@ -164,14 +163,14 @@ namespace RDFAnalysis {
     }
 
   template <typename Detail>
-    std::shared_ptr<Node<Detail>> Node<Detail>::Filter(
+    Node<Detail>* Node<Detail>::Filter(
         const std::string& expression,
         const ColumnNames_t& columns,
         const std::string& name,
         const std::string& cutflowName)
     {
       // Make sure that there isn't already a node with this name
-      for (const std::shared_ptr<Node>& child : m_children)
+      for (const std::unique_ptr<Node>& child : m_children)
         if (child->name() == name)
           throw std::runtime_error(
               "Attempting to create child '" + name + "' but this node " + 
@@ -183,14 +182,13 @@ namespace RDFAnalysis {
           columns,
           SysVarStringExpression(expression, columns),
           cutflowName);
-      std::shared_ptr<Node> child(new Node(
+      m_children.emplace_back(new Node(
             *this, std::move(childRNodes),  name, cutflowName) );
-      m_children.push_back(child);
-      return child;
+      return m_children.back().get();
     }
 
   template <typename Detail> template <typename F>
-    enable_ifn_string_t<F, std::shared_ptr<Node<Detail>>> Node<Detail>::setWeight(
+    enable_ifn_string_t<F, std::string> Node<Detail>::setWeight(
         F f,
         const ColumnNames_t& columns, 
         bool multiplicative)
@@ -208,42 +206,47 @@ namespace RDFAnalysis {
             false);
       }
       else {
-        m_weight = nameWeight();
-        // Define the new weight
-        Define(m_weight, f, columns);
+        std::string weight = nameWeight();
+        // Define the new weightn
+        Define(weight, f, columns);
         // Reset the weighted node statistics
-        setupWeightedStatistics();
+        /* setupWeightedStatistics(); */
+        return weight;
       }
-      return this->shared_from_this();
     }
 
   template <typename Detail>
-    std::shared_ptr<Node<Detail>> Node<Detail>::setWeight(
+    std::string Node<Detail>::setWeight(
         const std::string& expression,
         bool multiplicative)
     {
+      if (expression.empty() )
+        // If we've not provided an expression then use the parent's weight if
+        // it's there, otherwise keep an empty string
+        return m_parent ? m_parent->getWeight() : "";
       if (multiplicative && m_parent && !m_parent->getWeight().empty() ) {
         // Adapt the expression to include the parent weight and then call this
         // function again with the new expression and multiplicative set to false
         return setWeight("("+expression+") * " + m_parent->getWeight(), false);
       }
-      else if (m_namer->exists(expression) ) {
+      std::string weight;
+      if (m_namer->exists(expression) ) {
         // For this version only, if the new weight is already a column, no need
-        // to recalculated it...
-        m_weight = expression;
-        setupWeightedStatistics();
+        // to recalculate it...
+        weight = expression;
+        /* setupWeightedStatistics(); */
       }
       else {
-        m_weight = nameWeight();
-        Define(m_weight, expression);
+        weight = nameWeight();
+        Define(weight, expression);
         // Reset the weighted node statistics
-        setupWeightedStatistics();
+        /* setupWeightedStatistics(); */
       }
-      return this->shared_from_this();
+      return weight;
     }
 
   template <typename Detail>
-    std::shared_ptr<Node<Detail>> Node<Detail>::setWeight(
+    std::string Node<Detail>::setWeight(
         const std::string& expression,
         const ColumnNames_t& columns,
         bool multiplicative)
@@ -259,12 +262,12 @@ namespace RDFAnalysis {
             false);
       }
       else {
-        m_weight = nameWeight();
-        Define(m_weight, expression, columns);
+        std::string weight = nameWeight();
+        Define(weight, expression, columns);
         // Reset the weighted node statistics
-        setupWeightedStatistics();
+        /* setupWeightedStatistics(); */
+        return weight;
       }
-      return this->shared_from_this();
     }
 
   template <typename Detail> template <typename T>
@@ -295,20 +298,50 @@ namespace RDFAnalysis {
         const RNode& rnode,
         std::unique_ptr<IBranchNamer>&& namer,
         const std::string& name,
-        const std::string& cutflowName) :
+        const std::string& cutflowName,
+        const std::string& weight) :
       m_rnodes({{namer->nominalName(), rnode}}),
       m_namer(std::move(namer) ),
+      m_namerInit(*m_namer, m_rnodes),
       m_name(name),
       m_cutflowName(cutflowName),
       m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
+      m_weight(setWeight(weight, false) ),
       m_stats(m_namer->nominalName() ),
       m_weightedStats(m_namer->nominalName() ),
       m_detail(*this)
     {
-      m_namer->readBranchList(m_rnodes);
       m_stats.addResult(
           m_namer->nominalName(), 
           m_rnodes.at(m_namer->nominalName() ).Count() );
+      if (!m_weight.empty() )
+        setupWeightedStatistics();
+    }
+
+  template <typename Detail> template <typename W>
+    Node<Detail>::Node(
+        const RNode& rnode,
+        std::unique_ptr<IBranchNamer>&& namer,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& columns) :
+      m_rnodes({{namer->nominalName(), rnode}}),
+      m_namer(std::move(namer) ),
+      m_namerInit(*m_namer, m_rnodes),
+      m_name(name),
+      m_cutflowName(cutflowName),
+      m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
+      m_weight(setWeight(w, columns, false) ),
+      m_stats(m_namer->nominalName() ),
+      m_weightedStats(m_namer->nominalName() ),
+      m_detail(*this)
+    {
+      m_stats.addResult(
+          m_namer->nominalName(), 
+          m_rnodes.at(m_namer->nominalName() ).Count() );
+      if (!m_weight.empty() )
+        setupWeightedStatistics();
     }
 
   template <typename Detail>

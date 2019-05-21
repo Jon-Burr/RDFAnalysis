@@ -13,7 +13,7 @@
 
 namespace {
   void massPlots(
-      std::shared_ptr<RDFAnalysis::Node<RDFAnalysis::EmptyDetail>> node,
+      RDFAnalysis::Node<RDFAnalysis::EmptyDetail>* node,
       std::string jetStub,
       int nBins,
       float low,
@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
   auto Zlight = Z->Filter("BosonDecayID < 4", "Zlight", "Zlight");
   auto H = root->Filter("BosonID == 25", "Higgs", "Higgs");
   for (const std::string& jet : {"FatJet", "FatJetCalib", "FatJetTruth"}) {
-    for (const std::shared_ptr<RDFAnalysis::Node<RDFAnalysis::EmptyDetail>>& zn : {Zbottom, Zcharm, Zlight}) {
+    for (RDFAnalysis::Node<RDFAnalysis::EmptyDetail>* zn : {Zbottom, Zcharm, Zlight}) {
       massPlots(zn, jet, 70, 50e3, 120e3, 200e3);
     }
     massPlots(H, jet, 70, 80e3, 150e3, 250e3);
