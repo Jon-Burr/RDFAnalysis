@@ -20,6 +20,15 @@ namespace RDFAnalysis {
   using RNode = ROOT::RDF::RNode;
   using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
 
+  /**
+   * @brief Base class for the \ref Node classes.
+   *
+   * This class contains everything that does not depend on the \ref Detail
+   * parameter of the Node class. Many functions merely forward their calls onto
+   * the underlying ROOT::RNode objects, performing the necessary steps to allow
+   * for weights and systematics so you should consult the RDataFrame
+   * documentation for explanations of those functions.
+   */
   class NodeBase
   {
     public:
@@ -87,6 +96,18 @@ namespace RDFAnalysis {
             const T& model,
             const ColumnNames_t& columns);
 
+      /**
+       * @brief Execute a user-defined accumulation function.
+       * @tparam AccFun The type of the accumulation function
+       * @tparam MergeFun The type of the merging function
+       * @tparam U The return type of the accumulation function
+       *
+       * @param aggregator The accumulation function
+       * @param merger The merging function
+       * @param columnName The column for the funtion to act on
+       * @param aggIdentity The identity
+       * @see https://root.cern.ch/doc/v614/classROOT_1_1RDF_1_1RInterface.html#ae540b00addc441f9b504cbae0ef0a24d
+       */
       template <typename AccFun, typename MergeFun,
                typename ArgTypes=typename ROOT::TTraits::CallableTraits<AccFun>::arg_types,
                typename U=ROOT::TTraits::TakeFirstParameter_t<ArgTypes>>
@@ -102,6 +123,17 @@ namespace RDFAnalysis {
               aggregator, merger, SysVarBranch(columnName), aggIdentity);
         }
 
+      /**
+       * @brief Execute a user-defined accumulation function.
+       * @tparam AccFun The type of the accumulation function
+       * @tparam MergeFun The type of the merging function
+       * @tparam U The return type of the accumulation function
+       *
+       * @param aggregator The accumulation function
+       * @param merger The merging function
+       * @param columnName The column for the funtion to act on
+       * @see https://root.cern.ch/doc/v614/classROOT_1_1RDF_1_1RInterface.html#a7d82cb96013d9fe75cf4cc4a57f6d692
+       */
       template <typename AccFun, typename MergeFun,
                typename ArgTypes=typename ROOT::TTraits::CallableTraits<AccFun>::arg_types,
                typename U=ROOT::TTraits::TakeFirstParameter_t<ArgTypes>>
@@ -116,6 +148,10 @@ namespace RDFAnalysis {
               aggregator, merger, SysVarBranch(columnName) );
         }
 
+      /**
+       * @brief Count the number of entries processed by this node.
+       * @see https://root.cern.ch/doc/v614/classROOT_1_1RDF_1_1RInterface.html#a37f9e00c2ece7f53fae50b740adc1456
+       */
       SysResultPtr<ULong64_t> Count()
       {
         return ActResult<ROOT::RDF::RResultPtr<ULong64_t>>(
@@ -123,12 +159,53 @@ namespace RDFAnalysis {
             ColumnNames_t{});
       }
 
+      /**
+       * @brief Transmit a systematically varied action to the underlying
+       * ROOT::RNodes.
+       *
+       * @tparam TrArgs The types of the action's arguments
+       * @tparam T The return type of the action
+       * @tparam Args The types of the arguments before translation
+       * @param f The action
+       * @param columns The columns affected by the action
+       * @param args The arguments to the action
+       * @return A map of systematic name to action return type
+       *
+       * Most functions on the Node classes get routed through this or one of
+       * its overloads. It carries out the following operations:
+       *   -# Use \ref columns to determine which systematics affect this action
+       *   -# Apply the action to each underlying systematic-specific RNode,
+       *      even those not in the list found in the previous step
+       *   -# For each remaining systematic from step 1 apply the action to the
+       *      nominal RNode.
+       * When applying an action for a specific systematic any arguments that
+       * can be translated are. For information on argument translation see
+       * SysVar.h
+       *
+       * The first parameter of \ref f should be a ROOT::RNode&, this will be
+       * provided by this function and should not be included in \ref args.
+       */
       template <typename... TrArgs, typename T, typename... Args>
         std::map<std::string, T> Act(
             std::function<T(RNode&, TrArgs...)> f,
             const ColumnNames_t& columns,
             Args&&... args);
 
+      /**
+       * @brief Transmit a systematically varied action to the underlying
+       * ROOT::RNodes.
+       *
+       * @tparam F The function type
+       * @tparam Args The argument types
+       * @param f The action
+       * @param columns The columns affected by the action
+       * @param args The arguments to the action
+       * @return A map of systematic name to action return type
+       *
+       * Overload for non-member functions, will forward the call to
+       * Node::Act<TrArgs, T, Args>(std::function<T(RNode&,TrArgs...)>, const
+       * ColumnNames_t&, Args&&...).
+       */
       template <typename F, typename... Args,
                typename T=typename ROOT::TTraits::CallableTraits<F>::ret_type>
         std::map<std::string, T> Act(
@@ -141,11 +218,57 @@ namespace RDFAnalysis {
               columns,
               std::forward<Args>(args)...);
         }
+
+      /**
+       * @brief Transmit a systematically varied action to the underlying
+       * ROOT::RNodes.
+       *
+       * @tparam TrArgs The types of the action's arguments
+       * @tparam T The return type of the action
+       * @tparam Args The types of the arguments before translation
+       * @param f The action
+       * @param columns The columns affected by the action
+       * @param args The arguments to the action
+       * @return A map of systematic name to action return type
+       *
+       * Most functions on the Node classes get routed through this or one of
+       * its overloads. It carries out the following operations:
+       *   -# Use \ref columns to determine which systematics affect this action
+       *   -# Apply the action to each underlying systematic-specific RNode,
+       *      even those not in the list found in the previous step
+       *   -# For each remaining systematic from step 1 apply the action to the
+       *      nominal RNode.
+       * When applying an action for a specific systematic any arguments that
+       * can be translated are. For information on argument translation see
+       * SysVar.h
+       *
+       * This overload is selected when \ref f is a member function of
+       * ROOT::RNode. In this case is usually necessary to specify T and TrArgs
+       * in the call.
+       */
       template <typename T, typename... TrArgs, typename... Args>
         std::map<std::string, T> Act(
             T (RNode::*f)(TrArgs...),
             const ColumnNames_t& columns,
             Args&&... args);
+
+      /**
+       * @brief Specialised version of Node::Act for functions returning a
+       * ROOT::RDF::RResultPtr
+       *
+       * @tparam TrArgs The types of the action's arguments
+       * @tparam T The return type of the action, should be a
+       * ROOT::RDF::RResultPtr
+       * @tparam Args The types of the arguments before translation
+       * @tparam U The type wrapped by T
+       * @param f The action
+       * @param columns The columns affected by the action
+       * @param args The arguments to the action
+       * @return The SysResultPtr generated by the action
+       *
+       * This function wraps Act for cases where it returns an RResultPtr and
+       * wraps that return value in a SysResultPtr.
+       */
       template <typename... TrArgs, typename T, typename... Args,
                typename U=typename T::Value_t>
         SysResultPtr<U> ActResult(
@@ -158,6 +281,23 @@ namespace RDFAnalysis {
               Act(f, columns, std::forward<Args>(args)...) );
         }
 
+      /**
+       * @brief Specialised version of Node::Act for functions returning a
+       * ROOT::RDF::RResultPtr
+       *
+       * @tparam F The type of the action
+       * @tparam T The return type of the action, should be a
+       * ROOT::RDF::RResultPtr
+       * @tparam Args The types of the arguments before translation
+       * @tparam U The type wrapped by T
+       * @param f The action
+       * @param columns The columns affected by the action
+       * @param args The arguments to the action
+       * @return The SysResultPtr generated by the action
+       *
+       * This function wraps Act for cases where it returns an RResultPtr and
+       * wraps that return value in a SysResultPtr.
+       */
       template <typename F, typename... Args,
                typename T=typename ROOT::TTraits::CallableTraits<F>::ret_type,
                typename U=typename T::Value_t>
@@ -172,6 +312,24 @@ namespace RDFAnalysis {
               std::forward<Args>(args)...);
         }
 
+      /**
+       * @brief Specialised version of Node::Act for functions returning a
+       * ROOT::RDF::RResultPtr
+       *
+       * @tparam TrArgs The types of the action's arguments
+       * @tparam T The return type of the action, should be a
+       * ROOT::RDF::RResultPtr
+       * @tparam Args The types of the arguments before translation
+       * @tparam U The type wrapped by T
+       * @param f The action
+       * @param columns The columns affected by the action
+       * @param args The arguments to the action
+       * @return The SysResultPtr generated by the action
+       *
+       * This function wraps Act for cases where it returns an RResultPtr and
+       * wraps that return value in a SysResultPtr. This overload is selected
+       * when the action is a member function of ROOT::RNode.
+       */
       template <typename T, typename... TrArgs, typename... Args,
                 typename U=typename T::Value_t>
         SysResultPtr<U> ActResult(
@@ -195,34 +353,28 @@ namespace RDFAnalysis {
 
       /// Get the RNode objects
       const std::map<std::string, RNode>& rnodes() const { return m_rnodes; }
+      /// Get the RNode objects
       std::map<std::string, RNode>& rnodes() { return m_rnodes; }
 
       /// The namer
       const IBranchNamer& namer() const { return *m_namer; }
 
-      /// Get the ROOT RNode
+      /// Get the ROOT RNode TODO only temporary
       const RNode& rootRNode() const { return *m_rootRNode; }
 
       /// Get the ROOT RNode TODO only temporary
       RNode& rootRNode() { return *m_rootRNode; }
-
-      /* Node(Node&&) = default; */
 
       /// Iterate over the objects defined on this
       auto objects() { return as_range(m_objects); }
       /// (Const) iterate over all the objects defined on this
       auto objects() const { return as_range(m_objects); }
 
-/*       /// Get the node statistics */
-/*       SysResultPtr<ULong64_t> stats() { return m_stats; } */
-/*       /// Get the weighted statistics */
-/*       SysResultPtr<std::pair<float, float>> weightedStats() */
-/*       { return m_weightedStats; } */
-
       /// Is the node the root?
       virtual bool isRoot() const = 0;
 
     protected:
+      /// Helper struct that forces the initialisation of the branch namer.
       struct NamerInitialiser {
         NamerInitialiser() {} // no-op
         NamerInitialiser(
@@ -344,9 +496,6 @@ namespace RDFAnalysis {
 
       /// Internal function to name the weight branch
       std::string nameWeight();
-
-      /// Internal function to setup the weighted statistics
-      /* void setupWeightedStatistics(); */
 
       /// The RNode objects, keyed by systematic
       std::map<std::string, RNode> m_rnodes;      

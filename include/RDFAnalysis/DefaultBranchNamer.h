@@ -8,6 +8,14 @@
 #include <RDFAnalysis/IBranchNamer.h>
 
 namespace RDFAnalysis {
+  /**
+   * @brief Default implementation of the IBranchNamer interface.
+   *
+   * Allows for reading and writing branches of the form SYSNAME_BRANCHNAME or
+   * BRANCHNAME_SYSNAME. Can also read in files where the different systematics
+   * are saved as friend trees. In this case the input format is
+   * SYSNAME.BRANCHNAME.
+   */
   class DefaultBranchNamer : public IBranchNamer {
     public:
       /**

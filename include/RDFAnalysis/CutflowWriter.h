@@ -14,7 +14,7 @@
 
 namespace RDFAnalysis {
   /**
-   * @brief Class to write cutflows from Nodes
+   * @brief Class to write cutflows from Nodes.
    */
   template <typename Detail>
     class CutflowWriter : public INodeWriter<Detail> {

@@ -12,7 +12,8 @@
 
 namespace RDFAnalysis {
   /**
-   * @brief Class to write out objects from an RDFAnalysis
+   * @brief Class to write out objects from an RDFAnalysis.
+   *
    * Each named filter in the graph is represented by a folder in the output
    * file. This class only takes care of creating the folder structure, it
    * receives other INodeWriter objects that create the output from any

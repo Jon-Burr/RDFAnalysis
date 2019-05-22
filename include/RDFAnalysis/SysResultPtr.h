@@ -9,6 +9,11 @@ namespace RDFAnalysis {
    * @brief Class to wrap together RResultPtrs for different systematic
    * variations
    * @tparam T The type held by the RResultPtrs
+   *
+   * This class acts as a specialised map class holding result pointers
+   * corresponding to systematic variations of the same quantity. If a
+   * systematic variation is requested that does not affect this variable the
+   * nominal is returned.
    */
   template <typename T>
     class SysResultPtr {

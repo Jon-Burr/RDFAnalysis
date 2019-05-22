@@ -11,6 +11,9 @@
 #include <TDirectory.h>
 
 namespace RDFAnalysis {
+  /**
+   * @brief Class to write out the TObjects from a Node
+   */
   template <typename Detail>
     class TObjectWriter : public INodeWriter<Detail> {
       public:

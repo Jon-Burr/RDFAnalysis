@@ -7,11 +7,29 @@
 #include "RDFAnalysis/NodeFwd.h"
 
 namespace RDFAnalysis {
+
+  /**
+   * @brief Class to represent a single step in the analysis process.
+   *
+   * @tparam Detail Class to contain any extra information attached to the node.
+   *
+   * For the purposes of this package an analysis is modeled as a tree
+   * structure, each selection forming a new node in the tree. Multiple
+   * selections can be defined from a single node, forming a branch in the tree
+   * at that point. Each node can have attached TObjects (created using the \ref
+   * Fill function and accessed using the \ref NodeBase::objects function) as
+   * well as additional objects that can be accessed using the \ref details
+   * function.
+   *
+   * The tree structure can be navigated through using the \ref parent and \ref
+   * children functions.
+   */
   template <typename Detail>
   class Node : public NodeBase
   {
     public:
-      /// Typedefs
+      // Typedefs
+      /// The type of the Detail on this node.
       using detail_t = Detail;
 
       /**
@@ -61,12 +79,20 @@ namespace RDFAnalysis {
       const Detail& detail() const { return m_detail; }
 
       /// Get the parent of this node
-      Node* getParent() { return m_parent; }
-      const Node* getParent() const { return m_parent; }
+      Node* parent() { return m_parent; }
+      const Node* parent() const { return m_parent; }
 
       /// Is the node the root?
       bool isRoot() const { return m_parent == nullptr; }
 
+      /**
+       * @brief Create the root node of the tree
+       * @param rnode The RDataFrame that forms the base of the tree
+       * @param namer The branch namer
+       * @param name The name of the root node
+       * @param cutflowName How the root node appears in the cutflow
+       * @param weight Expression to calculate a weight.
+       */
       static std::unique_ptr<Node> createROOT(
           const RNode& rnode,
           std::unique_ptr<IBranchNamer>&& namer,

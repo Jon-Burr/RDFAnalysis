@@ -8,6 +8,16 @@
 class TDirectory;
 
 namespace RDFAnalysis {
+  /**
+   * @brief Base class for writing specific information from Nodes to file.
+   *
+   * @tparam Detail The templated Detail type of the \ref Node class to read
+   * from.
+   *
+   * This class provides for a uniform interface for objects that extract
+   * information from a given node to write to an output file. This allows
+   * detailed and flexible configuration of what is written to the output.
+   */
   template <typename Detail>
     class INodeWriter {
       public:

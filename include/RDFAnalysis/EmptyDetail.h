@@ -4,6 +4,9 @@
 #include "RDFAnalysis/NodeFwd.h"
 
 namespace RDFAnalysis {
+  /**
+   * @brief Empty detail class - adds no extra information to the node.
+   */
   class EmptyDetail {
     public:
       EmptyDetail(Node<EmptyDetail>&) {}

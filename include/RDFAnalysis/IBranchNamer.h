@@ -13,6 +13,21 @@
 #include <ROOT/RDataFrame.hxx>
 
 namespace RDFAnalysis {
+  /**
+   * @brief Abstract base class that describes how a Node should name its
+   * branches internally.
+   *
+   * The Node classes enforce a relationship between ROOT::RNode columns,
+   * potentially having multiple variations (corresponding to different
+   * systematics) of the same variable. These are stored as different columns in
+   * the underlying ROOT:RNodes. Therefore the Node objects need to know how to
+   * go from a variable name and a systematic name to the name of the
+   * ROOT::RNode column.
+   *
+   * That mapping is provided by this class, along with other useful information
+   * such as the full list of systematics, the name of the nominal systematic
+   * and a list of all defined variables.
+   */
   class IBranchNamer {
     public:
       virtual ~IBranchNamer() {}
@@ -99,9 +114,37 @@ namespace RDFAnalysis {
       /// Make a copy of this class
       virtual std::unique_ptr<IBranchNamer> copy() const = 0;
 
+      /**
+       * @brief Expand a C++ expression into a pseudo-functional form.
+       *
+       * @param expression The expression to expand.
+       * @return A pair, the first element is the pseudo-functional form, the
+       * second the input variables to that function.
+       *
+       * This function receives an expression that may contain variable names
+       * and then expands it into a form that can be varied for different
+       * systematics. For instance a function 'jet_pt * cos(jet_phi)' (where
+       * jet_pt and jet_phi are variables) would be expanded to '{0} *
+       * cos({1})', {'jet_pt', 'jet_phi'}.
+       */
       virtual std::pair<std::string, std::vector<std::string>> expandExpression(
           const std::string& expression) const;
 
+      /**
+       * @brief Interpret an expression for a given systematic variation.
+       *
+       * @param expression The pseudo-functional expression to use
+       * @param branches The input variables to the expression
+       * @param systematic The systematic variation to use
+       * @return The expression for the given systematic
+       *
+       * Reinterpret a pseudo-functional form produced by \ref expandExpression
+       * for a specific systematic. For an expression '{0} * cos({1})' with
+       * inputs {'jet_pt', 'jet_phi'} and systematic 'KIN_A' only affecting
+       * jet_pt  (and making hopefully obvious assumptions about the nominal
+       * name and the column naming pattern) this function would return 
+       * 'KIN_A_jet_pt * cos(NOSYS_jet_phi)'
+       */
       virtual std::string interpretExpression(
           const std::string& expression,
           const std::vector<std::string>& branches,

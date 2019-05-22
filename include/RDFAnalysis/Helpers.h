@@ -6,24 +6,33 @@
 #include <ROOT/RDataFrame.hxx>
 
 namespace RDFAnalysis {
-  /// Helper class to allow iterating through a container without allowing
-  /// users to modify that container
+  /**
+   * @brief Helper class to allow iterating through a container without allowing
+   * users to modify that container.
+   *
+   * @tparam Iterator The type of the input iterator.
+   */
   template <typename Iterator>
     class range_t {
       public:
         using itr_t = Iterator;
+        /// Construct the range from two iterators
         range_t(Iterator begin, Iterator end) :
           m_begin(begin),
           m_end(end) {}
 
+        /// The start of the range
         Iterator begin() const { return m_begin; }
+        /// The end of the range
         Iterator end() const { return m_end; }
+        /// The size of the wrapped range
         std::size_t size() const { return std::distance(begin(), end() ); }
       private:
         const Iterator m_begin;
         const Iterator m_end;
     };
 
+  /// Make a \ref range_t from a container
   template <typename Container>
     auto as_range(Container& container) {
       return range_t<std::decay_t<decltype(container.begin() )>>(
@@ -31,6 +40,7 @@ namespace RDFAnalysis {
           std::end(container) );
     }
 
+  /// Make a \ref range_t from a const container
   template <typename Container>
     auto as_range(const Container& container) {
       return range_t<std::decay_t<decltype(container.begin() )>>(
@@ -38,6 +48,13 @@ namespace RDFAnalysis {
           std::end(container) );
     }
 
+  /**
+   * @brief Get a directory, making it if it isn't there already.
+   *
+   * @param dir The directory from which to get/make the new one
+   * @param name The name of the new directory
+   * @param doThrow Whether to throw an exception if the function fails
+   */
   inline TDirectory* getMkdir(
       TDirectory* dir,
       const std::string& name, 
@@ -55,6 +72,17 @@ namespace RDFAnalysis {
     return dir->GetDirectory(name.c_str() );
   }
 
+  /**
+   * @brief Get a value by key, defaulting to a backup key if it is not there.
+   *
+   * @tparam Map The map type being interrogated
+   * @param theMap The map being interrogated
+   * @param key The key to search for
+   * @param defaultKey The fallback key
+   *
+   * Try and return the item keyed by \ref key from \ref theMap. If it isn't
+   * there, return the item keyed by \ref defaultKey instead.
+   */
   template <typename Map>
     typename Map::mapped_type getDefaultKey(
         const Map& theMap,
@@ -68,6 +96,7 @@ namespace RDFAnalysis {
         return itr->second;
     }
 
+  /// Get the number of slots used in this session.
   inline unsigned int getNSlots() {
     unsigned int poolSize = ROOT::GetImplicitMTPoolSize();
     return poolSize == 0 ? 1 : poolSize;
