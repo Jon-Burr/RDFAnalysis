@@ -10,6 +10,11 @@
 #include "TObject.h"
 #include <TDirectory.h>
 
+/**
+ * @file TObjectWriter.h
+ * @brief Class to write out the TObjects defined on the Nodes.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Class to write out the TObjects from a Node

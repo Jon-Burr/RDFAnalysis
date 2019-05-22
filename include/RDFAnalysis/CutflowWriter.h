@@ -12,6 +12,11 @@
 #include <TH1.h>
 #include <TDirectory.h>
 
+/**
+ * @file CutflowWriter.h
+ * @brief Writer class for cutflow information.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Class to write cutflows from Nodes.

@@ -5,6 +5,11 @@
 
 #include <string>
 
+/**
+ * @file INodeWriter.h
+ * @brief Abstract base class for node writers.
+ */
+
 class TDirectory;
 
 namespace RDFAnalysis {

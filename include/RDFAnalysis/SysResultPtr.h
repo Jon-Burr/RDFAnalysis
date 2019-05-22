@@ -4,6 +4,11 @@
 // Package includes
 #include "RDFAnalysis/ResultWrapper.h"
 
+/**
+ * @file SysResultPtr.h
+ * @brief Class to wrap systematic variations of RResultPtrs.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Class to wrap together RResultPtrs for different systematic

@@ -6,6 +6,11 @@
 #include "RDFAnalysis/NodeBase.h"
 #include "RDFAnalysis/NodeFwd.h"
 
+/**
+ * @file Node.h
+ * @brief File containing the central analysis class.
+ */
+
 namespace RDFAnalysis {
 
   /**

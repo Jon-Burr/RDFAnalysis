@@ -5,6 +5,11 @@
 #include <TDirectory.h>
 #include <ROOT/RDataFrame.hxx>
 
+/**
+ * @file Helpers.h
+ * File containing helper classes and functions.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Helper class to allow iterating through a container without allowing

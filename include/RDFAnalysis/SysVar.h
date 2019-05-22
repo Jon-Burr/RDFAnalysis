@@ -6,6 +6,7 @@
 #include <RDFAnalysis/IBranchNamer.h>
 
 /**
+ * @file SysVar.h
  * @brief Helper functions and classes for adapting function arguments that
  * depend on the systematic being evaluated.
  *

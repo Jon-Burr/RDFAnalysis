@@ -1,9 +1,6 @@
 #ifndef RDFAnalysis_IBranchNamer_H
 #define RDFAnalysis_IBranchNamer_H
 
-// TODO documentation
-// TODO const version of name branch that only gets you branches that exist
-
 #include <string>
 #include <vector>
 #include <set>
@@ -11,6 +8,11 @@
 #include <map>
 
 #include <ROOT/RDataFrame.hxx>
+
+/**
+ * @file IBranchNamer.h
+ * @brief The branch naming interface.
+ */
 
 namespace RDFAnalysis {
   /**

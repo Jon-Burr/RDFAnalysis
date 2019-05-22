@@ -8,6 +8,11 @@
 #include <type_traits>
 #include <functional>
 
+/**
+ * @file ResultWrapper.h
+ * @brief Class for wrapping RResultPtrs.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Wrapper class for RResultPtrs.

@@ -3,6 +3,11 @@
 
 #include "RDFAnalysis/NodeFwd.h"
 
+/**
+ * @file EmptyDetail.h
+ * @brief Empty detail class.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Empty detail class - adds no extra information to the node.

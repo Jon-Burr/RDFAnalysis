@@ -10,6 +10,11 @@
 // STL includes
 #include <memory>
 
+/**
+ * @file OutputWriter.h
+ * @brief Class to write out objects from a Nodes.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Class to write out objects from an RDFAnalysis.

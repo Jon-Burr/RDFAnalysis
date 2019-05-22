@@ -3,6 +3,11 @@
 
 #include "RDFAnalysis/NodeFwd.h"
 
+/**
+ * @file CutflowDetail.h
+ * Detail class for cutflow information.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Detail class containing cutflow information.

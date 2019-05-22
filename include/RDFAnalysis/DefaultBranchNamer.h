@@ -7,6 +7,11 @@
 // package includes
 #include <RDFAnalysis/IBranchNamer.h>
 
+/**
+ * @file DefaultBranchNamer.h
+ * @brief Default implementation of the IBranchNamer interface.
+ */
+
 namespace RDFAnalysis {
   /**
    * @brief Default implementation of the IBranchNamer interface.

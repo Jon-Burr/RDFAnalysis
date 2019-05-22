@@ -16,6 +16,11 @@
 #include <map>
 #include <memory>
 
+/**
+ * @file NodeBase.h
+ * @brief The base class for the \ref Node classes.
+ */
+
 namespace RDFAnalysis {
   using RNode = ROOT::RDF::RNode;
   using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
@@ -203,8 +208,7 @@ namespace RDFAnalysis {
        * @return A map of systematic name to action return type
        *
        * Overload for non-member functions, will forward the call to
-       * Node::Act<TrArgs, T, Args>(std::function<T(RNode&,TrArgs...)>, const
-       * ColumnNames_t&, Args&&...).
+       * Node::Act<TrArgs, T, Args>.
        */
       template <typename F, typename... Args,
                typename T=typename ROOT::TTraits::CallableTraits<F>::ret_type>
