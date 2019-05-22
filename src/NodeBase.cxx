@@ -83,15 +83,15 @@ namespace RDFAnalysis {
     m_name(name),
     m_cutflowName(cutflowName),
     m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
-    m_weight(setWeight(weight, "") ),
-    m_stats(m_namer->nominalName() ),
-    m_weightedStats(m_namer->nominalName() )
+    m_weight(setWeight(weight, "") )
+    /* m_stats(m_namer->nominalName() ), */
+    /* m_weightedStats(m_namer->nominalName() ) */
   {
-    m_stats.addResult(
-        m_namer->nominalName(), 
-        m_rnodes.at(m_namer->nominalName() ).Count() );
-    if (!m_weight.empty() )
-      setupWeightedStatistics();
+    /* m_stats.addResult( */
+    /*     m_namer->nominalName(), */ 
+    /*     m_rnodes.at(m_namer->nominalName() ).Count() ); */
+    /* if (!m_weight.empty() ) */
+    /*   setupWeightedStatistics(); */
   }
 
   NodeBase::NodeBase(
@@ -104,14 +104,14 @@ namespace RDFAnalysis {
     m_name(name),
     m_cutflowName(cutflowName),
     m_rootRNode(parent.m_rootRNode),
-    m_weight(parent.getWeight() ),
-    m_stats(m_namer->nominalName() ),
-    m_weightedStats(m_namer->nominalName() )
+    m_weight(parent.getWeight() )
+    /* m_stats(m_namer->nominalName() ), */
+    /* m_weightedStats(m_namer->nominalName() ) */
   {
     for (auto& nodePair : m_rnodes) {
     }
-    if (!m_weight.empty() )
-      setupWeightedStatistics();
+    /* if (!m_weight.empty() ) */
+    /*   setupWeightedStatistics(); */
   }
 
   std::string NodeBase::nameWeight()
@@ -120,36 +120,38 @@ namespace RDFAnalysis {
     return "_NodeWeight_"+std::to_string(std::hash<NodeBase*>()(this) )+"_";
   }
 
-  void NodeBase::setupWeightedStatistics()
-  {
-    // Clear out anything that was already there.
-    m_weightedStats.reset();
-    // Work out which systematics we care about
-    std::set<std::string> affecting = m_namer->systematicsAffecting(m_weight);
+/*   void NodeBase::setupWeightedStatistics() */
+/*   { */
+/*     // Clear out anything that was already there. */
+/*     m_weightedStats.reset(); */
+/*     // Work out which systematics we care about */
+/*     std::set<std::string> affecting = m_namer->systematicsAffecting(m_weight); */
 
-    auto aggrFunc = [] (const std::pair<float, float>& lhs, float rhs)
-    { return std::make_pair(lhs.first + rhs, lhs.second + rhs*rhs); };
-    auto mergeFunc =
-      [] (const std::pair<float, float>& lhs, const std::pair<float, float>& rhs)
-    { return std::make_pair(lhs.first+rhs.first, lhs.second+rhs.second); };
+/*     auto aggrFunc = [] (const std::pair<float, float>& lhs, float rhs) */
+/*     { return std::make_pair(lhs.first + rhs, lhs.second + rhs*rhs); }; */
+/*     auto mergeFunc = */
+/*       [] (const std::pair<float, float>& lhs, const std::pair<float, float>& rhs) */
+/*     { return std::make_pair(lhs.first+rhs.first, lhs.second+rhs.second); }; */
 
-    for (auto& rnodePair : m_rnodes) {
-      m_weightedStats.addResult(
-          rnodePair.first,
-          rnodePair.second.Aggregate(
-            aggrFunc,
-            mergeFunc,
-            m_namer->nameBranch(m_weight, rnodePair.first) ) );
-      affecting.erase(rnodePair.first);
-    }
-    RNode& nominalNode = m_rnodes.at(m_namer->nominalName() );
-    // For all the remaining systematics make them from the nominal
-    for (const std::string& syst : affecting)
-      m_weightedStats.addResult(
-          syst,
-          nominalNode.Aggregate(
-            aggrFunc,
-            mergeFunc,
-            m_namer->nameBranch(m_weight, syst) ) );
-  }
+/*     m_weightedStats = Aggregate(aggrFunc, mergeFunc, m_weight); */
+
+/*     /1* for (auto& rnodePair : m_rnodes) { *1/ */
+/*     /1*   m_weightedStats.addResult( *1/ */
+/*     /1*       rnodePair.first, *1/ */
+/*     /1*       rnodePair.second.Aggregate( *1/ */
+/*     /1*         aggrFunc, *1/ */
+/*     /1*         mergeFunc, *1/ */
+/*     /1*         m_namer->nameBranch(m_weight, rnodePair.first) ) ); *1/ */
+/*     /1*   affecting.erase(rnodePair.first); *1/ */
+/*     /1* } *1/ */
+/*     /1* RNode& nominalNode = m_rnodes.at(m_namer->nominalName() ); *1/ */
+/*     /1* // For all the remaining systematics make them from the nominal *1/ */
+/*     /1* for (const std::string& syst : affecting) *1/ */
+/*     /1*   m_weightedStats.addResult( *1/ */
+/*     /1*       syst, *1/ */
+/*     /1*       nominalNode.Aggregate( *1/ */
+/*     /1*         aggrFunc, *1/ */
+/*     /1*         mergeFunc, *1/ */
+/*     /1*         m_namer->nameBranch(m_weight, syst) ) ); *1/ */
+/*   } */
 }; //> enad namespace RDFAnalysis

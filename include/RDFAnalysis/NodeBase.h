@@ -87,29 +87,102 @@ namespace RDFAnalysis {
             const T& model,
             const ColumnNames_t& columns);
 
-      template <typename T, typename... TrArgs, typename... Args>
+      template <typename AccFun, typename MergeFun,
+               typename ArgTypes=typename ROOT::TTraits::CallableTraits<AccFun>::arg_types,
+               typename U=ROOT::TTraits::TakeFirstParameter_t<ArgTypes>>
+        SysResultPtr<U> Aggregate(
+            AccFun aggregator,
+            MergeFun merger,
+            const std::string& columnName,
+            const U& aggIdentity)
+        {
+          return ActResult<ROOT::RDF::RResultPtr<U>, AccFun, MergeFun, std::string_view, const U&>(
+              &RNode::Aggregate,
+              ColumnNames_t{columnName},
+              aggregator, merger, SysVarBranch(columnName), aggIdentity);
+        }
+
+      template <typename AccFun, typename MergeFun,
+               typename ArgTypes=typename ROOT::TTraits::CallableTraits<AccFun>::arg_types,
+               typename U=ROOT::TTraits::TakeFirstParameter_t<ArgTypes>>
+        SysResultPtr<U> Aggregate(
+            AccFun aggregator,
+            MergeFun merger,
+            const std::string& columnName)
+        {
+          return ActResult<ROOT::RDF::RResultPtr<U>, AccFun, MergeFun, std::string_view>(
+              &RNode::Aggregate,
+              ColumnNames_t{columnName},
+              aggregator, merger, SysVarBranch(columnName) );
+        }
+
+      SysResultPtr<ULong64_t> Count()
+      {
+        return ActResult<ROOT::RDF::RResultPtr<ULong64_t>>(
+            &RNode::Count,
+            ColumnNames_t{});
+      }
+
+      template <typename... TrArgs, typename T, typename... Args>
         std::map<std::string, T> Act(
             std::function<T(RNode&, TrArgs...)> f,
             const ColumnNames_t& columns,
             Args&&... args);
 
-      template <typename F, typename... Args>
-        std::map<std::string, typename ROOT::TTraits::CallableTraits<F>::ret_type> Act(
+      template <typename F, typename... Args,
+               typename T=typename ROOT::TTraits::CallableTraits<F>::ret_type>
+        std::map<std::string, T> Act(
             F&& f,
             const ColumnNames_t& columns,
             Args&&... args)
         {
           return Act(
-              std::function<typename ROOT::TTraits::CallableTraits<F>::ret_type(RNode&, typename sysvar_traits<Args&&>::value_type...)>(f),
+              std::function<T(RNode&, typename sysvar_traits<Args&&>::value_type...)>(f),
+              columns,
+              std::forward<Args>(args)...);
+        }
+      template <typename T, typename... TrArgs, typename... Args>
+        std::map<std::string, T> Act(
+            T (RNode::*f)(TrArgs...),
+            const ColumnNames_t& columns,
+            Args&&... args);
+      template <typename... TrArgs, typename T, typename... Args,
+               typename U=typename T::Value_t>
+        SysResultPtr<U> ActResult(
+            std::function<T(RNode&, TrArgs...)> f,
+            const ColumnNames_t& columns,
+            Args&&... args)
+        {
+          return SysResultPtr<U>(
+              namer().nominalName(),
+              Act(f, columns, std::forward<Args>(args)...) );
+        }
+
+      template <typename F, typename... Args,
+               typename T=typename ROOT::TTraits::CallableTraits<F>::ret_type,
+               typename U=typename T::Value_t>
+        SysResultPtr<U> ActResult(
+            F&& f,
+            const ColumnNames_t& columns,
+            Args&&... args)
+        {
+          return ActResult(
+              std::function<T(RNode&, typename sysvar_traits<Args&&>::value_type...)>(f),
               columns,
               std::forward<Args>(args)...);
         }
 
-      template <typename T, typename... TrArgs, typename... Args>
-        std::map<std::string, T> Act(
-            T (RNode::*f)(TrArgs&&...),
+      template <typename T, typename... TrArgs, typename... Args,
+                typename U=typename T::Value_t>
+        SysResultPtr<U> ActResult(
+            T (RNode::*f)(TrArgs...),
             const ColumnNames_t& columns,
-            Args&&... args);
+            Args&&... args)
+        {
+          return SysResultPtr<U>(
+              namer().nominalName(),
+              Act(f, columns, std::forward<Args>(args)...) );
+        }
 
       /// Get the name
       const std::string& name() const { return m_name; }
@@ -140,11 +213,11 @@ namespace RDFAnalysis {
       /// (Const) iterate over all the objects defined on this
       auto objects() const { return as_range(m_objects); }
 
-      /// Get the node statistics
-      SysResultPtr<ULong64_t> stats() { return m_stats; }
-      /// Get the weighted statistics
-      SysResultPtr<std::pair<float, float>> weightedStats()
-      { return m_weightedStats; }
+/*       /// Get the node statistics */
+/*       SysResultPtr<ULong64_t> stats() { return m_stats; } */
+/*       /// Get the weighted statistics */
+/*       SysResultPtr<std::pair<float, float>> weightedStats() */
+/*       { return m_weightedStats; } */
 
       /// Is the node the root?
       virtual bool isRoot() const = 0;
@@ -273,7 +346,7 @@ namespace RDFAnalysis {
       std::string nameWeight();
 
       /// Internal function to setup the weighted statistics
-      void setupWeightedStatistics();
+      /* void setupWeightedStatistics(); */
 
       /// The RNode objects, keyed by systematic
       std::map<std::string, RNode> m_rnodes;      
@@ -299,11 +372,11 @@ namespace RDFAnalysis {
       /// Any TObject pointers declared on this
       std::vector<SysResultPtr<TObject>> m_objects;
 
-      /// The node statistics
-      SysResultPtr<ULong64_t> m_stats;
+      /* /// The node statistics */
+      /* SysResultPtr<ULong64_t> m_stats; */
 
-      /// The node statistics (including weights)
-      SysResultPtr<std::pair<float, float>> m_weightedStats;
+      /* /// The node statistics (including weights) */
+      /* SysResultPtr<std::pair<float, float>> m_weightedStats; */
   }; //> end class NodeBase
 } //> end namespace RDFAnalysis
 #include "RDFAnalysis/NodeBase.icc"

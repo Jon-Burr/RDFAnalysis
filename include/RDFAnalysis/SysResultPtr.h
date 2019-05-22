@@ -20,6 +20,23 @@ namespace RDFAnalysis {
         SysResultPtr(const std::string& nominalName) :
           m_nominal(nominalName) {}
 
+        /**
+         * @brief Create the result from an existing map
+         * @tparam The type of the result ptr
+         * @param nominalName The name of the nominal variation
+         * @param resultMap Map of systematics to RResultPtrs
+         */
+        template <typename U,
+                 typename = std::enable_if_t<std::is_base_of<T, U>{} || std::is_same<T, U>{}, void>>
+          SysResultPtr(
+              const std::string& nominalName,
+              const std::map<std::string, ROOT::RDF::RResultPtr<U>>& resultMap) :
+            m_nominal(nominalName)
+          {
+            for (const auto& p : resultMap)
+              addResult(p.first, p.second);
+          }
+
         /// Allow access to the underlying map
         std::map<std::string, ResultWrapper<T>>& asMap() { return m_wrappers; }
 
@@ -65,15 +82,20 @@ namespace RDFAnalysis {
         template <typename U,
                   typename = std::enable_if_t<std::is_base_of<T, U>{}, void>
                  >
-          SysResultPtr(SysResultPtr<U>& other) 
+          SysResultPtr(SysResultPtr<U>& other) :
+            m_nominal(other.m_nominal)
           {
             for (const auto& p : other.asMap() )
               m_wrappers.insert(std::make_pair(
                     p.first, ResultWrapper<T>(p.second) ) );
           }
 
+        /// Allow conversion to bool - returns true if anything is filled
+        operator bool() const { return m_wrappers.size() != 0; }
 
       private:
+        template <typename U>
+          friend class SysResultPtr;
         std::string m_nominal;
         std::map<std::string, ResultWrapper<T>> m_wrappers;
     };

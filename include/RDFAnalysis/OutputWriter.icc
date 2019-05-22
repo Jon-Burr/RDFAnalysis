@@ -2,14 +2,14 @@
 #define RDFAnalysis_OutputWriter_ICC
 
 namespace RDFAnalysis {
-  template <typename N>
-    OutputWriter<N>::OutputWriter(
+  template <typename Detail>
+    OutputWriter<Detail>::OutputWriter(
         const std::shared_ptr<TDirectory>& directory) :
       m_directory(directory)
     {}
 
-  template <typename N>
-    OutputWriter<N>::OutputWriter(
+  template <typename Detail>
+    OutputWriter<Detail>::OutputWriter(
         const std::string& fileName,
         bool overwrite) :
       m_directory(std::make_shared<TFile>(
@@ -19,20 +19,20 @@ namespace RDFAnalysis {
         throw std::runtime_error("Failed to open " + fileName);
     }
 
-  template <typename N>
-    void OutputWriter<N>::write(
-        N& node,
+  template <typename Detail>
+    void OutputWriter<Detail>::write(
+        Node<Detail>& node,
         TDirectory* directory,
         std::size_t depth)
     {
       directory->cd();
       // Apply all of the writers - writers are not applied to anonymous nodes!
       if (!node.isAnonymous() )
-        for (std::shared_ptr<INodeWriter<N>>& writer : m_writers)
+        for (std::shared_ptr<INodeWriter<Detail>>& writer : m_writers)
           writer->write(node, directory, depth);
 
       // Now go through all of this node's children
-      for (std::unique_ptr<N>& child : node.children() ) {
+      for (std::unique_ptr<Node<Detail>>& child : node.children() ) {
         // If the child is anonymous then just pass down what we have now
         if (child->isAnonymous() )
           write(*child, directory, depth);

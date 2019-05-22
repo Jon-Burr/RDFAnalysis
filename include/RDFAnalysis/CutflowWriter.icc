@@ -2,14 +2,14 @@
 #define RDFAnalysis_CutflowWriter_ICC
 
 namespace RDFAnalysis {
-  template <typename N>
-    CutflowWriter<N>::CutflowWriter(const std::string& subDirName) :
+  template <typename Detail>
+    CutflowWriter<Detail>::CutflowWriter(const std::string& subDirName) :
       m_subDirName(subDirName)
     {}
 
-  template <typename N>
-    void CutflowWriter<N>::write(
-        N& node,
+  template <typename Detail>
+    void CutflowWriter<Detail>::write(
+        Node<Detail>& node,
         TDirectory* directory,
         std::size_t depth)
     {
@@ -19,7 +19,7 @@ namespace RDFAnalysis {
       if (m_cutflow.size() > depth)
         m_cutflow.resize(depth);
       // Add the cutflow information from this node
-      auto result = node.stats();
+      auto result = node.detail().stats();
       m_cutflow.emplace_back();
       for (auto& p : result.asMap() ) {
         TDirectory* systDir = getMkdir(directory, p.first);
@@ -38,7 +38,7 @@ namespace RDFAnalysis {
       // Now do the same for the weighted cutflow
       if (m_weightedCutflow.size() > depth)
         m_weightedCutflow.resize(depth);
-      auto weightedResult = node.weightedStats();
+      auto weightedResult = node.detail().weightedStats();
       m_weightedCutflow.emplace_back();
       for (auto& p : weightedResult.asMap() ) {
         TDirectory* systDir = getMkdir(directory, p.first);

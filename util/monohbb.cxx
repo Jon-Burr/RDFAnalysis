@@ -9,13 +9,14 @@
 #include "RDFAnalysis/TObjectWriter.h"
 #include "RDFAnalysis/CutflowWriter.h"
 #include "RDFAnalysis/DefaultBranchNamer.h"
+#include "RDFAnalysis/CutflowDetail.h"
 #include <boost/algorithm/string/join.hpp>
 #include <fstream>
 
 #include "RDFAnalysis/SysVar.h"
 
 /* using node_t = RDFAnalysis::Node<RDFAnalysis::DefaultBranchNamer>; */
-using node_t = RDFAnalysis::Node<>;
+using node_t = RDFAnalysis::Node<RDFAnalysis::CutflowDetail>;
 
 namespace {
   TH1F HPt("HiggsPt", ";p_T(H, true) [MeV]", 500, 0, 2e6);
@@ -140,7 +141,7 @@ int main(int argc, char* argv[]) {
   basicPlots(merged2b, "mJ");
   basicPlots(merged2b, "mJMuCorr", "massWindowMuCorr");
 
-  RDFAnalysis::OutputWriter<node_t> outputWriter(output, overwrite);
+  RDFAnalysis::OutputWriter<typename node_t::detail_t> outputWriter(output, overwrite);
   outputWriter.addWriter<RDFAnalysis::TObjectWriter>();
   outputWriter.addWriter<RDFAnalysis::CutflowWriter>();
   std::cout << "Trigger run" << std::endl;

@@ -6,7 +6,7 @@
 #include <iostream>
 
 namespace RDFAnalysis {
-  template <typename T, typename... TrArgs, typename... Args>
+  template <typename... TrArgs, typename T, typename... Args>
     std::map<std::string, T> NodeBase::Act(
         std::function<T(RNode&, TrArgs...)> f,
         const ColumnNames_t& columns,
@@ -47,7 +47,7 @@ namespace RDFAnalysis {
 
   template <typename T, typename... TrArgs, typename... Args>
     std::map<std::string, T> NodeBase::Act(
-        T (RNode::*f)(TrArgs&&...),
+        T (RNode::*f)(TrArgs...),
         const ColumnNames_t& columns,
         Args&&... args)
     {
@@ -61,7 +61,8 @@ namespace RDFAnalysis {
         // Remove this systematic from future consideration
         affecting.erase(rnodePair.first);
         result.insert(std::make_pair(
-              (rnodePair.first.*f)(sysVarTranslate(
+              rnodePair.first,
+              (rnodePair.second.*f)(sysVarTranslate(
                   std::forward<Args>(args),
                   *m_namer,
                   rnodePair.first)... ) ) );
@@ -90,12 +91,15 @@ namespace RDFAnalysis {
       // We don't actually use the output of the action so we don't store it.
       // However we need there to be a return value for the lambda.
       // Note that this action updates the node passed in.
-      Act([] (RNode& rnode, const std::string& name, F f, const ColumnNames_t& columns) {
-          return rnode = rnode.Define(name, f, columns); },
-          columns,
-          SysVarNewBranch(name),
-          f,
-          SysVarBranchVector(columns) );
+      Act<RNode, std::string_view, F, const ColumnNames_t&>(
+          &RNode::Define, columns,
+          SysVarNewBranch(name), f, SysVarBranchVector(columns) );
+      /* Act([] (RNode& rnode, const std::string& name, F f, const ColumnNames_t& columns) { */
+      /*     return rnode = rnode.Define(name, f, columns); }, */
+      /*     columns, */
+      /*     SysVarNewBranch(name), */
+      /*     f, */
+      /*     SysVarBranchVector(columns) ); */
       return this;
     }
 
@@ -136,8 +140,6 @@ namespace RDFAnalysis {
         std::string weight = nameWeight();
         // Define the new weight
         Define(weight, f, columns);
-        // Reset the weighted node statistics
-        /* setupWeightedStatistics(); */
         return weight;
       }
     }
@@ -148,18 +150,11 @@ namespace RDFAnalysis {
         const ColumnNames_t& columns)
     {
       // Create the result pointer
-      SysResultPtr<T> result(m_namer->nominalName() );
-      // Get the action's results
-      auto actOutMap = Act(
+      SysResultPtr<T> result = ActResult(
           [] (RNode& rnode, T&& t, const ColumnNames_t& col) { return rnode.Fill(T(t), col); },
           columns,
           T(model),
           SysVarBranchVector(columns) );
-      // Load them into the output
-      for (const auto& actPair : actOutMap)
-        result.addResult(actPair.first, actPair.second);
-      // We won't write the contents of anonymous nodes so don't even keep them
-      // here
       if (!isAnonymous() )
         m_objects.push_back(result);
       return result;      
@@ -179,15 +174,15 @@ namespace RDFAnalysis {
       m_name(name),
       m_cutflowName(cutflowName),
       m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
-      m_weight(setWeight(w, columns, "") ),
-      m_stats(m_namer->nominalName() ),
-      m_weightedStats(m_namer->nominalName() )
+      m_weight(setWeight(w, columns, "") )
+      /* m_stats(m_namer->nominalName() ), */
+      /* m_weightedStats(m_namer->nominalName() ) */
     {
-      m_stats.addResult(
-          m_namer->nominalName(), 
-          m_rnodes.at(m_namer->nominalName() ).Count() );
-      if (!m_weight.empty() )
-        setupWeightedStatistics();
+      /* m_stats.addResult( */
+      /*     m_namer->nominalName(), */ 
+      /*     m_rnodes.at(m_namer->nominalName() ).Count() ); */
+      /* if (!m_weight.empty() ) */
+      /*   setupWeightedStatistics(); */
     }
 }
 

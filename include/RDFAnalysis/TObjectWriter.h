@@ -11,8 +11,8 @@
 #include <TDirectory.h>
 
 namespace RDFAnalysis {
-  template <typename N>
-    class TObjectWriter : public INodeWriter<N> {
+  template <typename Detail>
+    class TObjectWriter : public INodeWriter<Detail> {
       public:
         ~TObjectWriter() override {}
 
@@ -31,7 +31,7 @@ namespace RDFAnalysis {
         * @param depth How deep down the node structure we are.
         */
         void write(
-            N& node,
+            Node<Detail>& node,
             TDirectory* directory,
             std::size_t /* depth */) override;
 

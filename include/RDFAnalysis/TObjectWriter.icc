@@ -2,14 +2,14 @@
 #define RDFAnalysis_TObjectWriter_ICC
 
 namespace RDFAnalysis {
-  template <typename N>
-    TObjectWriter<N>::TObjectWriter(const std::string& subDirName) :
+  template <typename Detail>
+    TObjectWriter<Detail>::TObjectWriter(const std::string& subDirName) :
       m_subDirName(subDirName)
     {}
 
-  template <typename N>
-    void TObjectWriter<N>::write(
-        N& node,
+  template <typename Detail>
+    void TObjectWriter<Detail>::write(
+        Node<Detail>& node,
         TDirectory* directory,
         std::size_t /* depth */)
     {

@@ -8,12 +8,13 @@
 #include "RDFAnalysis/OutputWriter.h"
 #include "RDFAnalysis/TObjectWriter.h"
 #include "RDFAnalysis/DefaultBranchNamer.h"
+#include "RDFAnalysis/CutflowDetail.h"
 #include <boost/algorithm/string/join.hpp>
 #include <fstream>
 
 namespace {
   void massPlots(
-      RDFAnalysis::Node<RDFAnalysis::EmptyDetail>* node,
+      RDFAnalysis::Node<RDFAnalysis::CutflowDetail>* node,
       std::string jetStub,
       int nBins,
       float low,
@@ -76,7 +77,7 @@ int main(int argc, char* argv[]) {
       return 1;
     }
 
-  auto root = RDFAnalysis::Node<>::createROOT(
+  auto root = RDFAnalysis::Node<RDFAnalysis::CutflowDetail>::createROOT(
       ROOT::RDataFrame(input),
       std::make_unique<RDFAnalysis::DefaultBranchNamer>(std::vector<std::string>{""}, true, false, "") );
 
@@ -86,12 +87,12 @@ int main(int argc, char* argv[]) {
   auto Zlight = Z->Filter("BosonDecayID < 4", "Zlight", "Zlight");
   auto H = root->Filter("BosonID == 25", "Higgs", "Higgs");
   for (const std::string& jet : {"FatJet", "FatJetCalib", "FatJetTruth"}) {
-    for (RDFAnalysis::Node<RDFAnalysis::EmptyDetail>* zn : {Zbottom, Zcharm, Zlight}) {
+    for (RDFAnalysis::Node<RDFAnalysis::CutflowDetail>* zn : {Zbottom, Zcharm, Zlight}) {
       massPlots(zn, jet, 70, 50e3, 120e3, 200e3);
     }
     massPlots(H, jet, 70, 80e3, 150e3, 250e3);
   }
-  RDFAnalysis::OutputWriter<RDFAnalysis::Node<RDFAnalysis::EmptyDetail>> outputWriter(output, overwrite);
+  RDFAnalysis::OutputWriter<RDFAnalysis::CutflowDetail> outputWriter(output, overwrite);
   outputWriter.addWriter<RDFAnalysis::TObjectWriter>();
   /* outputWriter.addWriter(RDFAnalysis::TObjectWriter() ); */
   std::cout << "Trigger run" << std::endl;

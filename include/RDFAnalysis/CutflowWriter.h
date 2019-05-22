@@ -4,6 +4,7 @@
 // package includes
 #include "RDFAnalysis/INodeWriter.h"
 #include "RDFAnalysis/Helpers.h"
+#include "RDFAnalysis/CutflowDetail.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -15,8 +16,9 @@ namespace RDFAnalysis {
   /**
    * @brief Class to write cutflows from Nodes
    */
-  template <typename N>
-    class CutflowWriter : public INodeWriter<N> {
+  template <typename Detail>
+    class CutflowWriter : public INodeWriter<Detail> {
+      static_assert(std::is_base_of<CutflowDetail, Detail>::value, "The CutflowWriter requires a cutflow detail!!");
       public:
         ~CutflowWriter() override {}
 
@@ -35,7 +37,7 @@ namespace RDFAnalysis {
         * @param depth How deep down the node structure we are.
         */
         void write(
-            N& node,
+            Node<Detail>& node,
             TDirectory* directory,
             std::size_t depth) override;
         
