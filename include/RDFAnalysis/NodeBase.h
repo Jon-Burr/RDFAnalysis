@@ -461,12 +461,39 @@ namespace RDFAnalysis {
        * @param rnodes This node's RNodes
        * @param name The name of this node
        * @param cutflowName How this node appears in cutflows
+       * @param weight Expression to calculate the node weight
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by its parent's
        */
       NodeBase(
           NodeBase& parent,
           std::map<std::string, RNode>&& rnodes,
           const std::string& name,
-          const std::string& cutflowName);
+          const std::string& cutflowName,
+          const std::string& weight,
+          bool multiplicative);
+
+      /**
+       * @brief Create a child node
+       * @tparam W The functor used to calculate the weight
+       * @param parent The parent of this node
+       * @param rnodes This node's RNodes
+       * @param name The name of this node
+       * @param cutflowName How this node appears in cutflows
+       * @param w Functor used to calculate the weight
+       * @param columns The input columns for the weight
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by its parent's
+       */
+      template <typename W>
+        NodeBase(
+            NodeBase& parent,
+            std::map<std::string, RNode>&& rnodes,
+            const std::string& name,
+            const std::string& cutflowName,
+            W w,
+            const ColumnNames_t& columns,
+            bool multiplicative);
 
       /**
        * @brief Set the weight on this node

@@ -54,24 +54,77 @@ namespace RDFAnalysis {
        * @param columns The input variables to the functor
        * @param name The name of the new node
        * @param cutflowName How the new node appears in the cutflow
+       * @param weight Expression to calculate the node weight
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by this one's.
        */
       template <typename F>
         enable_ifn_string_t<F, Node*> Filter(
             F f,
             const ColumnNames_t& columns = {},
             const std::string& name = "",
-            const std::string& cutflowName = "");
+            const std::string& cutflowName = "",
+            const std::string& weight = "",
+            bool multiplicative = true);
 
       /**
        * @brief Create a filter on this node
        * @param expression The expression to describe the filter
        * @param name The name of the new node
        * @param cutflowName How the new node appears in the cutflow
+       * @param weight Expression to calculate the node weight
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by this one's.
        */
       Node* Filter(
           const std::string& expression,
           const std::string& name = "",
-          const std::string& cutflowName = "");
+          const std::string& cutflowName = "",
+          const std::string& weight = "",
+          bool multiplicative = true);
+
+      /**
+       * @brief Create a filter on this node
+       * @tparam F The functor type
+       * @tparam W The functor type used for the weight
+       * @param f The functor
+       * @param columns The input variables to the functor
+       * @param name The name of the new node
+       * @param cutflowName How the new node appears in the cutflow
+       * @param w The functor used to calculate the weight
+       * @param weightColumns The input variables to the weight functor
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by this one's.
+       */
+      template <typename F, typename W>
+        std::enable_if_t<!std::is_convertible<F, std::string>::value && !std::is_convertible<W, std::string>::value, Node*> Filter(
+            F f,
+            const ColumnNames_t& columns,
+            const std::string& name,
+            const std::string& cutflowName,
+            W w,
+            const ColumnNames_t& weightColumns = {},
+            bool multiplicative = true);
+
+      /**
+       * @brief Create a filter on this node
+       * @tparam W The functor type used for the weight
+       * @param expression The expression to describe the filter
+       * @param name The name of the new node
+       * @param cutflowName How the new node appears in the cutflow
+       * @param w The functor used to calculate the weight
+       * @param weightColumns The input variables to the weight functor
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by this one's.
+       */
+      template <typename W>
+        enable_ifn_string_t<W, Node*> Filter(
+            const std::string& expression,
+            const std::string& name,
+            const std::string& cutflowName,
+            W w,
+            const ColumnNames_t& weightColumns = {},
+            bool multiplicative = true);
 
       /// Allow access to iterate over the child nodes
       auto children() { return as_range(m_children); }
@@ -133,7 +186,7 @@ namespace RDFAnalysis {
        * @param name The name of the root node
        * @param cutflowName How the root node appears in the cutflow
        * @param w Functor used to calculate the weight
-       * @param columns THe input columns for the weight
+       * @param columns The input columns for the weight
        */
       template <typename W>
         Node(
@@ -150,12 +203,40 @@ namespace RDFAnalysis {
        * @param rnodes This node's RNodes
        * @param name The name of this node
        * @param cutflowName How this node appears in cutflows
+       * @param weight Expression to calculate the node weight
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by its parent's
        */
       Node(
           Node& parent,
           std::map<std::string, RNode>&& rnodes,
           const std::string& name,
-          const std::string& cutflowName);
+          const std::string& cutflowName,
+          const std::string& weight,
+          bool multiplicative);
+
+
+      /**
+       * @brief Create a child node
+       * @tparam W The functor used to calculate the weight
+       * @param parent The parent of this node
+       * @param rnodes This node's RNodes
+       * @param name The name of this node
+       * @param cutflowName How this node appears in cutflows
+       * @param w Functor used to calculate the weight
+       * @param columns The input columns for the weight
+       * @param multiplicative Whether or not the new node's weight should be
+       * multiplied by its parent's
+       */
+      template <typename W>
+        Node(
+            Node& parent,
+            std::map<std::string, RNode>&& rnodes,
+            const std::string& name,
+            const std::string& cutflowName,
+            W w,
+            const ColumnNames_t& columns,
+            bool multiplicative);
 
       /// The parent of this node
       Node* m_parent = nullptr;

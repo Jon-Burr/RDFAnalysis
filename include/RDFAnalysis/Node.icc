@@ -21,7 +21,9 @@ namespace RDFAnalysis {
         F f,
         const ColumnNames_t& columns,
         const std::string& name,
-        const std::string& cutflowName)
+        const std::string& cutflowName,
+        const std::string& weight,
+        bool multiplicative)
     {
       // Make sure that there isn't already a node with this name
       for (const std::unique_ptr<Node>& child : m_children)
@@ -34,7 +36,7 @@ namespace RDFAnalysis {
         makeChildRNodes(f, columns, cutflowName);
 
       m_children.emplace_back(new Node(
-            *this, std::move(childRNodes),  name, cutflowName) );
+            *this, std::move(childRNodes),  name, cutflowName, weight, multiplicative) );
       return m_children.back().get();
     }
 
@@ -42,7 +44,9 @@ namespace RDFAnalysis {
     Node<Detail>* Node<Detail>::Filter(
         const std::string& expression,
         const std::string& name,
-        const std::string& cutflowName)
+        const std::string& cutflowName,
+        const std::string& weight,
+        bool multiplicative)
     {
       // Make sure that there isn't already a node with this name
       for (const std::unique_ptr<Node>& child : m_children)
@@ -54,7 +58,55 @@ namespace RDFAnalysis {
       std::map<std::string, RNode> childRNodes = makeChildRNodes(
           expression, cutflowName);
       m_children.emplace_back(new Node(
-            *this, std::move(childRNodes),  name, cutflowName) );
+            *this, std::move(childRNodes),  name, cutflowName, weight, multiplicative) );
+      return m_children.back().get();
+    }
+
+  template <typename Detail> template <typename F, typename W>
+    std::enable_if_t<!std::is_convertible<F, std::string>::value && !std::is_convertible<W, std::string>::value, Node<Detail>*> Node<Detail>::Filter(
+        F f,
+        const ColumnNames_t& columns,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& weightColumns,
+        bool multiplicative)
+    {
+      // Make sure that there isn't already a node with this name
+      for (const std::unique_ptr<Node>& child : m_children)
+        if (child->name() == name)
+          throw std::runtime_error(
+              "Attempting to create child '" + name + "' but this node " + 
+              "already has a node with that name!");
+
+      std::map<std::string, RNode> childRNodes = 
+        makeChildRNodes(f, columns, cutflowName);
+
+      m_children.emplace_back(new Node(
+            *this, std::move(childRNodes),  name, cutflowName, w, weightColumns, multiplicative) );
+      return m_children.back().get();
+    }
+
+  template <typename Detail> template <typename W>
+    enable_ifn_string_t<W, Node<Detail>*> Node<Detail>::Filter(
+        const std::string& expression,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& weightColumns,
+        bool multiplicative)
+    {
+      // Make sure that there isn't already a node with this name
+      for (const std::unique_ptr<Node>& child : m_children)
+        if (child->name() == name)
+          throw std::runtime_error(
+              "Attempting to create child '" + name + "' but this node " + 
+              "already has a node with that name!");
+
+      std::map<std::string, RNode> childRNodes = makeChildRNodes(
+          expression, cutflowName);
+      m_children.emplace_back(new Node(
+            *this, std::move(childRNodes),  name, cutflowName, w, weightColumns, multiplicative) );
       return m_children.back().get();
     }
 
@@ -84,8 +136,23 @@ namespace RDFAnalysis {
         Node& parent,
         std::map<std::string, RNode>&& rnodes,
         const std::string& name,
-        const std::string& cutflowName) :
-      NodeBase(parent, std::move(rnodes), name, cutflowName),
+        const std::string& cutflowName,
+        const std::string& weight,
+        bool multiplicative) :
+      NodeBase(parent, std::move(rnodes), name, cutflowName, weight, multiplicative),
+      m_parent(&parent),
+      m_detail(*this) {}
+
+  template <typename Detail> template <typename W>
+    Node<Detail>::Node(
+        Node& parent,
+        std::map<std::string, RNode>&& rnodes,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& columns,
+        bool multiplicative) :
+      NodeBase(parent, std::move(rnodes), name, cutflowName, w, columns, multiplicative),
       m_parent(&parent),
       m_detail(*this) {}
 } //> end namespace RDFAnalysis

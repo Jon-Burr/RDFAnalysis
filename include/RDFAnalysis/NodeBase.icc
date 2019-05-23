@@ -175,14 +175,25 @@ namespace RDFAnalysis {
       m_cutflowName(cutflowName),
       m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
       m_weight(setWeight(w, columns, "") )
-      /* m_stats(m_namer->nominalName() ), */
-      /* m_weightedStats(m_namer->nominalName() ) */
     {
-      /* m_stats.addResult( */
-      /*     m_namer->nominalName(), */ 
-      /*     m_rnodes.at(m_namer->nominalName() ).Count() ); */
-      /* if (!m_weight.empty() ) */
-      /*   setupWeightedStatistics(); */
+    }
+
+  template <typename W>
+    NodeBase::NodeBase(
+        NodeBase& parent,
+        std::map<std::string, RNode>&& rnodes,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& columns,
+        bool multiplicative) :
+      m_rnodes(std::move(rnodes) ),
+      m_namer(parent.m_namer->copy() ),
+      m_name(name),
+      m_cutflowName(cutflowName),
+      m_rootRNode(parent.m_rootRNode),
+      m_weight(setWeight(w, columns, multiplicative ? parent.getWeight() : "") )
+    {
     }
 }
 
