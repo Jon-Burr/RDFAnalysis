@@ -16,7 +16,6 @@ addons:
 script:
   - cd doxygen
   - doxygen Doxyfile
-  - cd ..
   - touch .nojekyll
 
 deploy:
