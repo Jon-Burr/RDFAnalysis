@@ -6,16 +6,6 @@
 #include <iostream>
 
 namespace RDFAnalysis {
-  template <typename Detail> template <typename... Args>
-    Node<Detail>* Node<Detail>::Define(Args&&... args)
-    {
-      // Use the base class
-      NodeBase::Define(std::forward<Args>(args)...);
-      // But return this class
-      return this;
-    }
-
-
   template <typename Detail> template <typename F>
     enable_ifn_string_t<F, Node<Detail>*> Node<Detail>::Filter(
         F f,

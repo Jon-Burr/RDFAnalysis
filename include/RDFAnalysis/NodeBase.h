@@ -15,6 +15,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <array>
 
 /**
  * @file NodeBase.h
@@ -79,6 +80,31 @@ namespace RDFAnalysis {
           const std::string& name,
           const std::string& expression,
           const ColumnNames_t& columns);
+
+      /**
+       * @brief Define several new variables on this node in a single statement.
+       * @tparam F The functor type
+       * @tparam Ret_t The return type of the functor - must be a tuple
+       * @tparam N The number of defined arguments
+       * @param names The names of the defined variables
+       * @param f The functor
+       * @param columns  The inputs to the functor
+       * @return a non-owning pointer to this object.
+       * Use this function where you need to return multiple variables from a
+       * single function. Note that the affecting systematics will be the same
+       * for all of the returned objects so make sure that this is appropriate.
+       * The functor should return a std::tuple with N different types and the
+       * names parameter should have exactly the same number of entries (else
+       * the code will not compile).
+       */
+      template <typename F,
+               typename Ret_t = typename ROOT::TTraits::CallableTraits<F>::ret_type,
+               std::size_t N = std::tuple_size<Ret_t>::value>
+        NodeBase* Define(
+            const std::array<std::string, N>& names,
+            F f,
+            const ColumnNames_t& columns);
+
       /**
        * @brief Get the name of the weight branch.
        * The name returned will be the base name, not resolved for any
@@ -387,6 +413,19 @@ namespace RDFAnalysis {
           namer.readBranchList(rnodes);
         }
       };
+
+      template <std::size_t I, std::size_t N, typename... Elements>
+        std::enable_if_t<I!=0, void> unwindDefine(
+            const std::array<std::string, N>& names,
+            const std::string& fullName,
+            const std::tuple<Elements...>*);
+
+      template <std::size_t I, std::size_t N, typename... Elements>
+        std::enable_if_t<I == 0, void> unwindDefine(
+            const std::array<std::string, N>& names,
+            const std::string& fullName,
+            const std::tuple<Elements...>*);
+
 
       /**
        * @brief Create child RNodes to be used for a filter from this node

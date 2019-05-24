@@ -4,6 +4,7 @@
 #include <utility>
 #include <tuple>
 #include <iostream>
+#include <boost/algorithm/string/join.hpp>
 
 namespace RDFAnalysis {
   template <typename... TrArgs, typename T, typename... Args>
@@ -51,6 +52,7 @@ namespace RDFAnalysis {
         const ColumnNames_t& columns,
         Args&&... args)
     {
+
       // Prepare the output
       std::map<std::string, T> result;
       // First work out which systematics affect this action
@@ -91,17 +93,51 @@ namespace RDFAnalysis {
       // We don't actually use the output of the action so we don't store it.
       // However we need there to be a return value for the lambda.
       // Note that this action updates the node passed in.
-      Act<RNode, std::string_view, F, const ColumnNames_t&>(
-          &RNode::Define, columns,
+      Act([] (RNode& rnode, const std::string& name, F f, const ColumnNames_t& columns) {
+          return rnode = rnode.Define(name, f, columns); },
+          columns,
           SysVarNewBranch(name), f, SysVarBranchVector(columns) );
-      /* Act([] (RNode& rnode, const std::string& name, F f, const ColumnNames_t& columns) { */
-      /*     return rnode = rnode.Define(name, f, columns); }, */
-      /*     columns, */
-      /*     SysVarNewBranch(name), */
-      /*     f, */
-      /*     SysVarBranchVector(columns) ); */
       return this;
     }
+
+  template <typename F, typename Ret_t, std::size_t N>
+    NodeBase* NodeBase::Define(
+        const std::array<std::string, N>& names,
+        F f,
+        const ColumnNames_t& columns)
+    {
+      // Start by defining a variable that contains all of the outputs. We'll
+      // form this by separating them with underscores
+      std::string fullName = "_" + boost::algorithm::join(names, "_") + "_";
+      Define(fullName, f, columns);
+      unwindDefine<N-1>(names, fullName, static_cast<Ret_t*>(nullptr) );
+      return this;
+    }
+  template <std::size_t I, std::size_t N, typename... Elements>
+    std::enable_if_t<I != 0, void> NodeBase::unwindDefine(
+        const std::array<std::string, N>& names,
+        const std::string& fullName,
+        const std::tuple<Elements...>* dummy)
+    {
+      Define(
+          names.at(I),
+          [] (const std::tuple<Elements...>& tup) { return std::get<I>(tup); },
+          {fullName});
+      unwindDefine<I-1>(names, fullName, dummy);
+    }
+
+  template <std::size_t I, std::size_t N, typename... Elements>
+    std::enable_if_t<I == 0, void> NodeBase::unwindDefine(
+        const std::array<std::string, N>& names,
+        const std::string& fullName,
+        const std::tuple<Elements...>*)
+    {
+      Define(
+          names.at(I),
+          [] (const std::tuple<Elements...>& tup) { return std::get<I>(tup); },
+          {fullName});
+    }
+
 
   template <typename F>
     enable_ifn_string_t<F, std::map<std::string, RNode>> NodeBase::makeChildRNodes(
