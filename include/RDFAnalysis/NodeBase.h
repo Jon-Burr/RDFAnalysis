@@ -6,6 +6,7 @@
 #include "RDFAnalysis/Helpers.h"
 #include "RDFAnalysis/SysResultPtr.h"
 #include "RDFAnalysis/SysVar.h"
+#include "RDFAnalysis/WeightStrategy.h"
 
 // ROOT includes
 #include "ROOT/RDataFrame.hxx"
@@ -97,10 +98,11 @@ namespace RDFAnalysis {
        * names parameter should have exactly the same number of entries (else
        * the code will not compile).
        */
-      template <typename F,
-               typename Ret_t = typename ROOT::TTraits::CallableTraits<F>::ret_type,
-               std::size_t N = std::tuple_size<Ret_t>::value>
-        NodeBase* Define(
+      template <
+        std::size_t N,
+        typename F,
+        typename Ret_t = typename ROOT::TTraits::CallableTraits<F>::ret_type>
+        std::enable_if_t<N==std::tuple_size<Ret_t>::value, NodeBase*> Define(
             const std::array<std::string, N>& names,
             F f,
             const ColumnNames_t& columns);
@@ -118,6 +120,8 @@ namespace RDFAnalysis {
        * @tparam T The type of object to be filled.
        * @param model The 'model' object to fill.
        * @param columns The columns to use for the object's Fill method.
+       * @param weight The column containing the weight information
+       * @param WeightStrategy strategy The weight strategy to use
        *
        * Note that right now this won't work if T doesn't inherit from TH1. TODO
        * fix this! 
@@ -125,7 +129,9 @@ namespace RDFAnalysis {
       template <typename T>
         SysResultPtr<T> Fill(
             const T& model,
-            const ColumnNames_t& columns);
+            const ColumnNames_t& columns,
+            const std::string& weight = "",
+            WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Execute a user-defined accumulation function.
@@ -381,6 +387,9 @@ namespace RDFAnalysis {
       /// Is this anonymous?
       bool isAnonymous() const { return m_name.empty(); }
 
+      /// Was 'MC' mode activated?
+      bool isMC() const { return m_isMC; }
+
       /// Get the RNode objects
       const std::map<std::string, RNode>& rnodes() const { return m_rnodes; }
       /// Get the RNode objects
@@ -388,12 +397,6 @@ namespace RDFAnalysis {
 
       /// The namer
       const IBranchNamer& namer() const { return *m_namer; }
-
-      /// Get the ROOT RNode TODO only temporary
-      const RNode& rootRNode() const { return *m_rootRNode; }
-
-      /// Get the ROOT RNode TODO only temporary
-      RNode& rootRNode() { return *m_rootRNode; }
 
       /// Iterate over the objects defined on this
       auto objects() { return as_range(m_objects); }
@@ -414,12 +417,14 @@ namespace RDFAnalysis {
         }
       };
 
+      /// Base case for unwinding multiple define calls
       template <std::size_t I, std::size_t N, typename... Elements>
         std::enable_if_t<I!=0, void> unwindDefine(
             const std::array<std::string, N>& names,
             const std::string& fullName,
             const std::tuple<Elements...>*);
 
+      /// Unwind multiple define calls
       template <std::size_t I, std::size_t N, typename... Elements>
         std::enable_if_t<I == 0, void> unwindDefine(
             const std::array<std::string, N>& names,
@@ -464,35 +469,43 @@ namespace RDFAnalysis {
        * @brief Create the root node of the tree
        * @param rnode The RDataFrame that forms the base of the tree
        * @param namer The branch namer
+       * @param isMC If true, set the 'MC' mode, otherwise the 'data' mode
        * @param name The name of the root node
        * @param cutflowName How the root node appears in the cutflow
        * @param weight Expression to calculate a weight.
+       * @param strategy Weighting strategy for this weight
        */
       NodeBase(
           const RNode& rnode,
           std::unique_ptr<IBranchNamer>&& namer,
+          bool isMC,
           const std::string& name = "ROOT",
           const std::string& cutflowName = "Number of events",
-          const std::string& weight = "");
+          const std::string& weight = "",
+          WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Create the root node of the tree
        * @tparam W The functor used to calculate the weight
        * @param rnode The RDataFrame that forms the base of the tree
        * @param namer The branch namer
+       * @param isMC If true, set the 'MC' mode, otherwise the 'data' mode
        * @param name The name of the root node
        * @param cutflowName How the root node appears in the cutflow
        * @param w Functor used to calculate the weight
-       * @param columns THe input columns for the weight
+       * @param columns The input columns for the weight
+       * @param strategy Weighting strategy for this weight
        */
       template <typename W>
         NodeBase(
             const RNode& rnode,
             std::unique_ptr<IBranchNamer>&& namer,
+            bool isMC,
             const std::string& name,
             const std::string& cutflowName,
             W w,
-            const ColumnNames_t& columns);
+            const ColumnNames_t& columns,
+            WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Create a child node
@@ -501,8 +514,7 @@ namespace RDFAnalysis {
        * @param name The name of this node
        * @param cutflowName How this node appears in cutflows
        * @param weight Expression to calculate the node weight
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by its parent's
+       * @param strategy Weighting strategy for this weight
        */
       NodeBase(
           NodeBase& parent,
@@ -510,8 +522,7 @@ namespace RDFAnalysis {
           const std::string& name,
           const std::string& cutflowName,
           const std::string& weight,
-          bool multiplicative);
-
+          WeightStrategy strategy = WeightStrategy::Default);
       /**
        * @brief Create a child node
        * @tparam W The functor used to calculate the weight
@@ -521,8 +532,7 @@ namespace RDFAnalysis {
        * @param cutflowName How this node appears in cutflows
        * @param w Functor used to calculate the weight
        * @param columns The input columns for the weight
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by its parent's
+       * @param strategy Weighting strategy for this weight
        */
       template <typename W>
         NodeBase(
@@ -532,37 +542,37 @@ namespace RDFAnalysis {
             const std::string& cutflowName,
             W w,
             const ColumnNames_t& columns,
-            bool multiplicative);
+            WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Set the weight on this node
        * @tparam F the functor type
        * @param f The functor
        * @param columns The input columns to \ref f (if any)
-       * @param parentWeight The name of the parent weight branch. If this
-       * weight should not be multiplied by the parent this will be the empty
-       * string.
+       * @param parent The parent (if any) of this node
+       * @param strategy The weighting strategy to apply
        * @return The name of the new weight
        * The new weight will be calculated and stored in a new branch.
        */
       template <typename F>
         enable_ifn_string_t<F, std::string> setWeight(
             F f,
-            const ColumnNames_t& columns = {},
-            const std::string& parentWeight = "");
+            const ColumnNames_t& columns,
+            NodeBase* parent,
+            WeightStrategy strategy);
 
       /**
        * @brief Set the weight on this node
        * @param expression The expression to calculate the weight
-       * @param parentWeight The name of the parent weight branch. If this
-       * weight should not be multiplied by the parent this will be the empty
-       * string.
+       * @param parent The parent (if any) of this node
+       * @param strategy The weighting strategy to apply
        * @return The name of the new weight
        * The new weight will be calculated and stored in a new branch.
        */
       std::string setWeight(
           const std::string& expression,
-          const std::string& parentWeight);
+          NodeBase* parent,
+          WeightStrategy strategy);
 
       /// Internal function to name the weight branch
       std::string nameWeight();
@@ -575,6 +585,9 @@ namespace RDFAnalysis {
 
       /// Helper struct to force early initialisation of the namer
       NamerInitialiser m_namerInit;
+
+      /// Whether or not 'MC' mode was activated
+      bool m_isMC;
 
       /// The Node's name
       std::string m_name;

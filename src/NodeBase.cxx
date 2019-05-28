@@ -1,4 +1,5 @@
 #include "RDFAnalysis/NodeBase.h"
+#include <typeinfo>
 
 namespace RDFAnalysis {
   NodeBase* NodeBase::Define(
@@ -48,42 +49,54 @@ namespace RDFAnalysis {
 
   std::string NodeBase::setWeight(
       const std::string& expression,
-      const std::string& parentWeight)
+      NodeBase* parent,
+      WeightStrategy strategy)
   {
-    if (expression.empty() )
-      // If we've not provided an expression then use the parent's weight if
-      // it's there, otherwise keep an empty string
-      return parentWeight;
-    if (!parentWeight.empty() )
-      // Adapt the expression to include the parent weight and then call this
-      // function again with the new expression and no parentWeight
-      return setWeight("("+expression+") * " + parentWeight, "");
-    std::string weight;
-    if (m_namer->exists(expression) ) {
+    if (expression.empty() ||
+        (!isMC() && !!(strategy & WeightStrategy::MCOnly ) ) )
+      // If we've not provided an expression or this is an MC-only weight and
+      // we're not in the MC mode then do whatever the parent is doing. If
+      // there's no parent then just use the empty string (no weight)
+      return parent ? parent->getWeight() : "";
+
+    if (!!(strategy & WeightStrategy::Multiplicative) && 
+        parent && parent->getWeight() != "")
+      // If we've requested a multiplicative weight and there is a parent weight
+      // by which to multiply call this again with the multiplied weight and the
+      // multiplicative part of the weight turned off
+      return setWeight(
+          "("+expression+") * " + parent->getWeight(),
+          parent,
+          strategy & ~WeightStrategy::Multiplicative);
+
+    // If we reach here then we no longer need to worry about the strategy -
+    // we've already taken care of all of that
+    if (m_namer->exists(expression) )
       // For this version only, if the new weight is already a column, no need
       // to recalculate it...
-      weight = expression;
-    }
-    else {
-      weight = nameWeight();
-      Define(weight, expression);
-    }
+      return expression;
+    // Otherwise create the new branch and return it
+    std::string weight = nameWeight();
+    Define(weight, expression);
     return weight;
   }
 
   NodeBase::NodeBase(
       const RNode& rnode,
       std::unique_ptr<IBranchNamer>&& namer,
+      bool isMC,
       const std::string& name,
       const std::string& cutflowName,
-      const std::string& weight) :
+      const std::string& weight,
+      WeightStrategy strategy) :
     m_rnodes({{namer->nominalName(), rnode}}),
     m_namer(std::move(namer) ),
     m_namerInit(*m_namer, m_rnodes),
+    m_isMC(isMC),
     m_name(name),
     m_cutflowName(cutflowName),
     m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
-    m_weight(setWeight(weight, "") )
+    m_weight(setWeight(weight, nullptr, strategy) )
   {
   }
 
@@ -93,13 +106,14 @@ namespace RDFAnalysis {
       const std::string& name,
       const std::string& cutflowName,
       const std::string& weight,
-      bool multiplicative) :
+      WeightStrategy strategy) :
     m_rnodes(std::move(rnodes) ),
-    m_namer(parent.m_namer->copy() ),
+    m_namer(parent.namer().copy() ),
+    m_isMC(parent.isMC() ),
     m_name(name),
     m_cutflowName(cutflowName),
     m_rootRNode(parent.m_rootRNode),
-    m_weight(setWeight(weight, multiplicative ? parent.getWeight() : "") )
+    m_weight(setWeight(weight, &parent, strategy) )
   {
   }
 
@@ -108,39 +122,4 @@ namespace RDFAnalysis {
     // Construct the name of the node by hashing the pointer
     return "_NodeWeight_"+std::to_string(std::hash<NodeBase*>()(this) )+"_";
   }
-
-/*   void NodeBase::setupWeightedStatistics() */
-/*   { */
-/*     // Clear out anything that was already there. */
-/*     m_weightedStats.reset(); */
-/*     // Work out which systematics we care about */
-/*     std::set<std::string> affecting = m_namer->systematicsAffecting(m_weight); */
-
-/*     auto aggrFunc = [] (const std::pair<float, float>& lhs, float rhs) */
-/*     { return std::make_pair(lhs.first + rhs, lhs.second + rhs*rhs); }; */
-/*     auto mergeFunc = */
-/*       [] (const std::pair<float, float>& lhs, const std::pair<float, float>& rhs) */
-/*     { return std::make_pair(lhs.first+rhs.first, lhs.second+rhs.second); }; */
-
-/*     m_weightedStats = Aggregate(aggrFunc, mergeFunc, m_weight); */
-
-/*     /1* for (auto& rnodePair : m_rnodes) { *1/ */
-/*     /1*   m_weightedStats.addResult( *1/ */
-/*     /1*       rnodePair.first, *1/ */
-/*     /1*       rnodePair.second.Aggregate( *1/ */
-/*     /1*         aggrFunc, *1/ */
-/*     /1*         mergeFunc, *1/ */
-/*     /1*         m_namer->nameBranch(m_weight, rnodePair.first) ) ); *1/ */
-/*     /1*   affecting.erase(rnodePair.first); *1/ */
-/*     /1* } *1/ */
-/*     /1* RNode& nominalNode = m_rnodes.at(m_namer->nominalName() ); *1/ */
-/*     /1* // For all the remaining systematics make them from the nominal *1/ */
-/*     /1* for (const std::string& syst : affecting) *1/ */
-/*     /1*   m_weightedStats.addResult( *1/ */
-/*     /1*       syst, *1/ */
-/*     /1*       nominalNode.Aggregate( *1/ */
-/*     /1*         aggrFunc, *1/ */
-/*     /1*         mergeFunc, *1/ */
-/*     /1*         m_namer->nameBranch(m_weight, syst) ) ); *1/ */
-/*   } */
 }; //> enad namespace RDFAnalysis

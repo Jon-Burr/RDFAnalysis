@@ -5,15 +5,33 @@
 #include <tuple>
 #include <iostream>
 
+#include "RDFAnalysis/RunMonitor.h"
+#include "RDFAnalysis/Helpers.h"
+
 namespace RDFAnalysis {
   template <typename Detail> template <typename F>
-    enable_ifn_string_t<F, Node<Detail>*> Node<Detail>::Filter(
+    std::enable_if_t<std::is_convertible<typename ROOT::TTraits::CallableTraits<F>::ret_type, std::tuple<bool, float>>::value, Node<Detail>*> Node<Detail>::Filter(
+        F f,
+        const ColumnNames_t& columns,
+        const std::string& name,
+        const std::string& cutflowName,
+        WeightStrategy strategy)
+    {
+      // Create a unique base name for this column
+      std::string uname = uniqueBranchName("Filter");
+      Define<2>({uname+"Decision_", uname+"Weight_"}, f, columns);
+      return Filter(uname+"Decision_", name, cutflowName, uname+"Weight_", strategy);
+    }
+
+
+  template <typename Detail> template <typename F>
+    std::enable_if_t<std::is_convertible<typename ROOT::TTraits::CallableTraits<F>::ret_type, bool>::value, Node<Detail>*> Node<Detail>::Filter(
         F f,
         const ColumnNames_t& columns,
         const std::string& name,
         const std::string& cutflowName,
         const std::string& weight,
-        bool multiplicative)
+        WeightStrategy strategy)
     {
       // Make sure that there isn't already a node with this name
       for (const std::unique_ptr<Node>& child : m_children)
@@ -26,7 +44,7 @@ namespace RDFAnalysis {
         makeChildRNodes(f, columns, cutflowName);
 
       m_children.emplace_back(new Node(
-            *this, std::move(childRNodes),  name, cutflowName, weight, multiplicative) );
+            *this, std::move(childRNodes),  name, cutflowName, weight, strategy) );
       return m_children.back().get();
     }
 
@@ -36,7 +54,7 @@ namespace RDFAnalysis {
         const std::string& name,
         const std::string& cutflowName,
         const std::string& weight,
-        bool multiplicative)
+        WeightStrategy strategy)
     {
       // Make sure that there isn't already a node with this name
       for (const std::unique_ptr<Node>& child : m_children)
@@ -48,7 +66,7 @@ namespace RDFAnalysis {
       std::map<std::string, RNode> childRNodes = makeChildRNodes(
           expression, cutflowName);
       m_children.emplace_back(new Node(
-            *this, std::move(childRNodes),  name, cutflowName, weight, multiplicative) );
+            *this, std::move(childRNodes),  name, cutflowName, weight, strategy) );
       return m_children.back().get();
     }
 
@@ -60,7 +78,7 @@ namespace RDFAnalysis {
         const std::string& cutflowName,
         W w,
         const ColumnNames_t& weightColumns,
-        bool multiplicative)
+        WeightStrategy strategy)
     {
       // Make sure that there isn't already a node with this name
       for (const std::unique_ptr<Node>& child : m_children)
@@ -73,7 +91,7 @@ namespace RDFAnalysis {
         makeChildRNodes(f, columns, cutflowName);
 
       m_children.emplace_back(new Node(
-            *this, std::move(childRNodes),  name, cutflowName, w, weightColumns, multiplicative) );
+            *this, std::move(childRNodes),  name, cutflowName, w, weightColumns, strategy) );
       return m_children.back().get();
     }
 
@@ -84,7 +102,7 @@ namespace RDFAnalysis {
         const std::string& cutflowName,
         W w,
         const ColumnNames_t& weightColumns,
-        bool multiplicative)
+        WeightStrategy strategy)
     {
       // Make sure that there isn't already a node with this name
       for (const std::unique_ptr<Node>& child : m_children)
@@ -96,29 +114,53 @@ namespace RDFAnalysis {
       std::map<std::string, RNode> childRNodes = makeChildRNodes(
           expression, cutflowName);
       m_children.emplace_back(new Node(
-            *this, std::move(childRNodes),  name, cutflowName, w, weightColumns, multiplicative) );
+            *this, std::move(childRNodes),  name, cutflowName, w, weightColumns, strategy) );
       return m_children.back().get();
+    }
+
+  template <typename Detail>
+    void Node<Detail>::run(ULong64_t printEvery) {
+      run(RunMonitor(printEvery) );
+    }
+  
+  template <typename Detail>
+    void Node<Detail>::run(
+        ULong64_t printEvery,
+        ULong64_t total) {
+      run(RunMonitor(printEvery, total) );
+    }
+
+  template <typename Detail> template <typename Monitor>
+    void Node<Detail>::run(Monitor monitor) {
+      if (isRoot() )
+        m_rnodes.at(namer().nominalName() ).ForeachSlot(monitor);
+      else
+        m_parent->run(monitor);
     }
 
   template <typename Detail>
     Node<Detail>::Node(
         const RNode& rnode,
         std::unique_ptr<IBranchNamer>&& namer,
+        bool isMC,
         const std::string& name,
         const std::string& cutflowName,
-        const std::string& weight) :
-      NodeBase(rnode, std::move(namer), name, cutflowName, weight),
+        const std::string& weight,
+        WeightStrategy strategy) :
+      NodeBase(rnode, std::move(namer), isMC, name, cutflowName, weight, strategy),
       m_detail(*this) {}
 
   template <typename Detail> template <typename W>
     Node<Detail>::Node(
         const RNode& rnode,
         std::unique_ptr<IBranchNamer>&& namer,
+        bool isMC,
         const std::string& name,
         const std::string& cutflowName,
         W w,
-        const ColumnNames_t& columns) :
-      NodeBase(rnode, std::move(namer), name, cutflowName, w, columns),
+        const ColumnNames_t& columns,
+        WeightStrategy strategy) :
+      NodeBase(rnode, std::move(namer), isMC, name, cutflowName, w, columns, strategy),
       m_detail(*this) {}
 
   template <typename Detail>
@@ -128,8 +170,8 @@ namespace RDFAnalysis {
         const std::string& name,
         const std::string& cutflowName,
         const std::string& weight,
-        bool multiplicative) :
-      NodeBase(parent, std::move(rnodes), name, cutflowName, weight, multiplicative),
+        WeightStrategy strategy) :
+      NodeBase(parent, std::move(rnodes), name, cutflowName, weight, strategy),
       m_parent(&parent),
       m_detail(*this) {}
 
@@ -141,8 +183,8 @@ namespace RDFAnalysis {
         const std::string& cutflowName,
         W w,
         const ColumnNames_t& columns,
-        bool multiplicative) :
-      NodeBase(parent, std::move(rnodes), name, cutflowName, w, columns, multiplicative),
+        WeightStrategy strategy) :
+      NodeBase(parent, std::move(rnodes), name, cutflowName, w, columns, strategy),
       m_parent(&parent),
       m_detail(*this) {}
 } //> end namespace RDFAnalysis

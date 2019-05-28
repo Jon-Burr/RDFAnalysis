@@ -100,8 +100,8 @@ namespace RDFAnalysis {
       return this;
     }
 
-  template <typename F, typename Ret_t, std::size_t N>
-    NodeBase* NodeBase::Define(
+  template <std::size_t N, typename F, typename Ret_t>
+    std::enable_if_t<N==std::tuple_size<Ret_t>::value, NodeBase*> NodeBase::Define(
         const std::array<std::string, N>& names,
         F f,
         const ColumnNames_t& columns)
@@ -158,13 +158,20 @@ namespace RDFAnalysis {
     enable_ifn_string_t<F, std::string> NodeBase::setWeight(
         F f,
         const ColumnNames_t& columns, 
-        const std::string& parentWeight)
+        NodeBase* parent,
+        WeightStrategy strategy)
     {
-      if (!parentWeight.empty()) {
-        // Adapt f to include the parent weight and call this function with the
-        // new functor and multiplicative set to false
+      if (!(strategy & WeightStrategy::MCOnly) || isMC() )
+        // if this is an MC-only weight and we're not in the MC mode just do
+        // whatever the parent is doing. If there's no parent then just use the
+        // empty string (no weight).
+        return parent ? parent->getWeight() : "";
+      if (!!(strategy & WeightStrategy::Multiplicative) &&
+          parent && parent->getWeight() != "") {
+        // If we've requested a multiplicative weight and there is a parent
+        // weight to multiply adapt f to multiply by the parent weight.
         ColumnNames_t newColumns = columns;
-        newColumns.push_back(parentWeight);
+        newColumns.push_back(parent->getWeight() );
         return setWeight(
             [f] (auto&&... args, const double& parentWeight) {
               return parentWeight * f(std::forward<decltype(args)>(args)...);
@@ -172,45 +179,64 @@ namespace RDFAnalysis {
             newColumns,
             false);
       }
-      else {
-        std::string weight = nameWeight();
-        // Define the new weight
-        Define(weight, f, columns);
-        return weight;
-      }
+
+      // If we reach here then we no longer need to worry about the strategy -
+      // we've already taken care of all of that
+      // Just define the new weight and return it.
+      std::string weight = nameWeight();
+      Define(weight, f, columns);
+      return weight;
     }
 
   template <typename T>
     SysResultPtr<T> NodeBase::Fill(
         const T& model,
-        const ColumnNames_t& columns)
+        const ColumnNames_t& columns,
+        const std::string& weight,
+        WeightStrategy strategy)
     {
+      // Here I assume that I can add a weight by just appending it to list of
+      // input columns...
+      ColumnNames_t newColumns = columns;
+      if (!weight.empty() && (!(strategy & WeightStrategy::MCOnly) || isMC() ) ) {
+        if (!!(strategy & WeightStrategy::Multiplicative) && !getWeight().empty() ) {
+          // We need to create a new weight branch from the product of this and
+          // the existing weight
+          std::string newWeight = uniqueBranchName("HistWeight");
+          Define(newWeight, weight + " * " + getWeight() );
+          newColumns.push_back(newWeight);
+        }
+        else
+          newColumns.push_back(weight);
+      }
       // Create the result pointer
       SysResultPtr<T> result = ActResult(
           [] (RNode& rnode, T&& t, const ColumnNames_t& col) { return rnode.Fill(T(t), col); },
-          columns,
+          newColumns,
           T(model),
-          SysVarBranchVector(columns) );
+          SysVarBranchVector(newColumns) );
       if (!isAnonymous() )
         m_objects.push_back(result);
-      return result;      
+      return result; 
     }
 
   template <typename W>
     NodeBase::NodeBase(
         const RNode& rnode,
         std::unique_ptr<IBranchNamer>&& namer,
+        bool isMC,
         const std::string& name,
         const std::string& cutflowName,
         W w,
-        const ColumnNames_t& columns) :
+        const ColumnNames_t& columns,
+        WeightStrategy strategy) :
       m_rnodes({{namer->nominalName(), rnode}}),
       m_namer(std::move(namer) ),
       m_namerInit(*m_namer, m_rnodes),
+      m_isMC(isMC),
       m_name(name),
       m_cutflowName(cutflowName),
-      m_rootRNode(&m_rnodes.at(m_namer->nominalName() ) ),
-      m_weight(setWeight(w, columns, "") )
+      m_weight(setWeight(w, columns, nullptr, strategy) )
     {
     }
 
@@ -222,13 +248,13 @@ namespace RDFAnalysis {
         const std::string& cutflowName,
         W w,
         const ColumnNames_t& columns,
-        bool multiplicative) :
+        WeightStrategy strategy) :
       m_rnodes(std::move(rnodes) ),
-      m_namer(parent.m_namer->copy() ),
+      m_namer(parent.namer().copy() ),
+      m_isMC(parent.isMC() ),
       m_name(name),
       m_cutflowName(cutflowName),
-      m_rootRNode(parent.m_rootRNode),
-      m_weight(setWeight(w, columns, multiplicative ? parent.getWeight() : "") )
+      m_weight(setWeight(w, columns, &parent, strategy) )
     {
     }
 }

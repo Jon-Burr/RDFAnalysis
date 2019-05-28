@@ -108,10 +108,11 @@ namespace RDFAnalysis {
        * names parameter should have exactly the same number of entries (else
        * the code will not compile).
        */
-      template <typename F,
-               typename Ret_t = typename ROOT::TTraits::CallableTraits<F>::ret_type,
-               std::size_t N = std::tuple_size<Ret_t>::value>
-        Node* Define(
+      template <
+        std::size_t N,
+        typename F,
+        typename Ret_t = typename ROOT::TTraits::CallableTraits<F>::ret_type>
+        std::enable_if_t<N==std::tuple_size<Ret_t>::value, Node>* Define(
             const std::array<std::string, N>& names,
             F f,
             const ColumnNames_t& columns)
@@ -127,18 +128,36 @@ namespace RDFAnalysis {
        * @param columns The input variables to the functor
        * @param name The name of the new node
        * @param cutflowName How the new node appears in the cutflow
-       * @param weight Expression to calculate the node weight
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by this one's.
+       * @param strategy Weighting strategy for this weight
+       * In this overload the functor calculates the pass decision and the
+       * weight in one go, return std::make_tuple(pass, weight).
        */
       template <typename F>
-        enable_ifn_string_t<F, Node*> Filter(
+        std::enable_if_t<std::is_convertible<typename ROOT::TTraits::CallableTraits<F>::ret_type, std::tuple<bool, float>>::value, Node*> Filter(
+            F f,
+            const ColumnNames_t& columns = {},
+            const std::string& name = "",
+            const std::string& cutflowName = "",
+            WeightStrategy strategy = WeightStrategy::Default);
+
+      /**
+       * @brief Create a filter on this node
+       * @tparam F The functor type
+       * @param f The functor
+       * @param columns The input variables to the functor
+       * @param name The name of the new node
+       * @param cutflowName How the new node appears in the cutflow
+       * @param weight Expression to calculate the node weight
+       * @param strategy Weighting strategy for this weight
+       */
+      template <typename F>
+        std::enable_if_t<std::is_convertible<typename ROOT::TTraits::CallableTraits<F>::ret_type, bool>::value, Node*> Filter(
             F f,
             const ColumnNames_t& columns = {},
             const std::string& name = "",
             const std::string& cutflowName = "",
             const std::string& weight = "",
-            bool multiplicative = true);
+            WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Create a filter on this node
@@ -146,15 +165,14 @@ namespace RDFAnalysis {
        * @param name The name of the new node
        * @param cutflowName How the new node appears in the cutflow
        * @param weight Expression to calculate the node weight
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by this one's.
+       * @param strategy Weighting strategy for this weight
        */
       Node* Filter(
           const std::string& expression,
           const std::string& name = "",
           const std::string& cutflowName = "",
           const std::string& weight = "",
-          bool multiplicative = true);
+          WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Create a filter on this node
@@ -166,8 +184,7 @@ namespace RDFAnalysis {
        * @param cutflowName How the new node appears in the cutflow
        * @param w The functor used to calculate the weight
        * @param weightColumns The input variables to the weight functor
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by this one's.
+       * @param strategy Weighting strategy for this weight
        */
       template <typename F, typename W>
         std::enable_if_t<!std::is_convertible<F, std::string>::value && !std::is_convertible<W, std::string>::value, Node*> Filter(
@@ -177,7 +194,7 @@ namespace RDFAnalysis {
             const std::string& cutflowName,
             W w,
             const ColumnNames_t& weightColumns = {},
-            bool multiplicative = true);
+            WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Create a filter on this node
@@ -187,8 +204,7 @@ namespace RDFAnalysis {
        * @param cutflowName How the new node appears in the cutflow
        * @param w The functor used to calculate the weight
        * @param weightColumns The input variables to the weight functor
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by this one's.
+       * @param strategy Weighting strategy for this weight
        */
       template <typename W>
         enable_ifn_string_t<W, Node*> Filter(
@@ -197,7 +213,7 @@ namespace RDFAnalysis {
             const std::string& cutflowName,
             W w,
             const ColumnNames_t& weightColumns = {},
-            bool multiplicative = true);
+            WeightStrategy strategy = WeightStrategy::Default);
 
       /// Allow access to iterate over the child nodes
       auto children() { return as_range(m_children); }
@@ -227,13 +243,43 @@ namespace RDFAnalysis {
       static std::unique_ptr<Node> createROOT(
           const RNode& rnode,
           std::unique_ptr<IBranchNamer>&& namer,
+          bool isMC,
           const std::string& name = "ROOT",
           const std::string& cutflowName = "Number of events",
-          const std::string& weight = "")
+          const std::string& weight = "",
+          WeightStrategy strategy = WeightStrategy::Default)
       {
         return std::unique_ptr<Node>(
-            new Node(rnode, std::move(namer), name, cutflowName, weight) );
+            new Node(rnode, std::move(namer), isMC, 
+              name, cutflowName, weight, strategy) );
       }
+
+      /**
+       * @brief Trigger the run
+       * @param printEvery How often to print to the screen
+       */
+      void run(ULong64_t printEvery);
+
+      /**
+       * @brief Trigger the run
+       * @param printEvery How often to print to the screen
+       * @param total The total number of events
+       * This is different to the function above in that it prints as a fraction
+       * of the total.
+       */
+      void run(ULong64_t printEvery, ULong64_t total);
+
+      /**
+       * @brief Trigger the run
+       * @tparam Monitor The monitor type
+       * @param monitor The monitor
+       * Trigger the run, calling the operator()(unsigned int) of the monitor.
+       * The argument to this call is the slot number. If you are not running in
+       * a multi-threaded environment this will always be 0.
+       * You are responsible for the thread safety of this function!
+       */
+      template <typename Monitor>
+        void run(Monitor monitor);
 
     private:
       /**
@@ -243,13 +289,16 @@ namespace RDFAnalysis {
        * @param name The name of the root node
        * @param cutflowName How the root node appears in the cutflow
        * @param weight Expression to calculate a weight.
+       * @param strategy Weighting strategy for this weight
        */
       Node(
           const RNode& rnode,
           std::unique_ptr<IBranchNamer>&& namer,
+          bool isMC,
           const std::string& name = "ROOT",
           const std::string& cutflowName = "Number of events",
-          const std::string& weight = "");
+          const std::string& weight = "",
+          WeightStrategy strategy = WeightStrategy::Default);
 
       /**
        * @brief Create the root node of the tree
@@ -260,15 +309,18 @@ namespace RDFAnalysis {
        * @param cutflowName How the root node appears in the cutflow
        * @param w Functor used to calculate the weight
        * @param columns The input columns for the weight
+       * @param strategy Weighting strategy for this weight
        */
       template <typename W>
         Node(
             const RNode& rnode,
             std::unique_ptr<IBranchNamer>&& namer,
+            bool isMC,
             const std::string& name,
             const std::string& cutflowName,
             W w,
-            const ColumnNames_t& columns);
+            const ColumnNames_t& columns,
+            WeightStrategy strategy);
 
       /**
        * @brief Create a child node
@@ -277,8 +329,7 @@ namespace RDFAnalysis {
        * @param name The name of this node
        * @param cutflowName How this node appears in cutflows
        * @param weight Expression to calculate the node weight
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by its parent's
+       * @param strategy Weighting strategy for this weight
        */
       Node(
           Node& parent,
@@ -286,7 +337,7 @@ namespace RDFAnalysis {
           const std::string& name,
           const std::string& cutflowName,
           const std::string& weight,
-          bool multiplicative);
+          WeightStrategy strategy);
 
 
       /**
@@ -298,8 +349,7 @@ namespace RDFAnalysis {
        * @param cutflowName How this node appears in cutflows
        * @param w Functor used to calculate the weight
        * @param columns The input columns for the weight
-       * @param multiplicative Whether or not the new node's weight should be
-       * multiplied by its parent's
+       * @param strategy Weighting strategy for this weight
        */
       template <typename W>
         Node(
@@ -309,7 +359,7 @@ namespace RDFAnalysis {
             const std::string& cutflowName,
             W w,
             const ColumnNames_t& columns,
-            bool multiplicative);
+            WeightStrategy strategy);
 
       /// The parent of this node
       Node* m_parent = nullptr;

@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <TDirectory.h>
 #include <ROOT/RDataFrame.hxx>
+#include <random>
 
 /**
  * @file Helpers.h
@@ -122,6 +123,9 @@ namespace RDFAnalysis {
     {
       return apply_impl(std::forward<F&&>(f), std::forward<std::tuple<Ts...>&&>(args), std::make_index_sequence<sizeof...(Ts)>());
     }
+
+  /// Could perhaps be more natural in the IBranchNamer?
+  std::string uniqueBranchName(const std::string& stub = "GenBranch");
 
 }; //> end namespace RDFAnalysis
 

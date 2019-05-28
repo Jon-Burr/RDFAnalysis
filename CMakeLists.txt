@@ -21,6 +21,9 @@ target_sources( RDFAnalysis
       src/IBranchNamer.cxx
       src/DefaultBranchNamer.cxx
       src/NodeBase.cxx
+      src/RunMonitor.cxx
+      src/Helpers.cxx
+      src/WeightStrategy.cxx
     )
 
 # Link ROOT
@@ -35,26 +38,4 @@ target_link_libraries( RDFAnalysis
 target_compile_features( RDFAnalysis
     PUBLIC
       cxx_std_14
-    )
-
-add_executable( monohbb )
-target_sources( monohbb
-    PRIVATE
-      util/monohbb.cxx
-    )
-target_link_libraries( monohbb
-    PRIVATE
-      RDFAnalysis
-      Boost::program_options
-    )
-
-add_executable( jetres )
-target_sources( jetres
-    PRIVATE
-      util/jetres.cxx
-    )
-target_link_libraries( jetres
-    PRIVATE
-      RDFAnalysis
-      Boost::program_options
     )
