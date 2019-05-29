@@ -47,8 +47,18 @@ namespace RDFAnalysis {
               addResult(p.first, p.second);
           }
 
-        /// Allow access to the underlying map
-        std::map<std::string, ResultWrapper<T>>& asMap() { return m_wrappers; }
+        /// Iterator to the start of the underlying map
+        auto begin() { return m_wrappers.begin(); }
+
+        /// Const iterator to the start of the underlying map
+        auto begin() const { return m_wrappers.begin(); }
+
+        /// Iterator to the end of the underlying map
+        auto end() { return m_wrappers.end(); }
+
+        /// Const iterator to the end of the underlying map
+        auto end() const { return m_wrappers.end(); }
+
 
         /// Set from a map
         void setMap(const std::map<std::string, ResultWrapper<T>>& newMap) { m_wrappers = newMap; }
@@ -65,8 +75,8 @@ namespace RDFAnalysis {
         {
           auto itr = m_wrappers.find(syst);
           return itr == m_wrappers.end()
-            ? m_wrappers.at(m_nominal)
-            : itr->second;
+            ? m_wrappers.at(m_nominal).get()
+            : itr->second.get();
         }
 
         /**
@@ -95,7 +105,7 @@ namespace RDFAnalysis {
           SysResultPtr(SysResultPtr<U>& other) :
             m_nominal(other.m_nominal)
           {
-            for (const auto& p : other.asMap() )
+            for (const auto& p : other)
               m_wrappers.insert(std::make_pair(
                     p.first, ResultWrapper<T>(p.second) ) );
           }

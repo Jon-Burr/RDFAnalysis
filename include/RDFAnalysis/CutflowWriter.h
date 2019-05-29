@@ -50,12 +50,6 @@ namespace RDFAnalysis {
         /// The subdirectory name
         std::string m_subDirName;
 
-        /// Build up the cutflow into this vector
-        std::vector<std::map<std::string,std::pair<std::string, ULong64_t>>> m_cutflow;
-
-        /// Build up the weighted cutflow into this vector
-        std::vector<std::map<std::string,std::pair<std::string, std::pair<float, float>>>> m_weightedCutflow;
-
     }; //> end class CutflowWriter
 } //> end namespace RDFAnalysis
 

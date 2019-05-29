@@ -15,7 +15,7 @@ namespace RDFAnalysis {
     {
       // Loop over each object and save it
       for (SysResultPtr<TObject>& object : node.objects() ) {
-        for (auto& objPair : object.asMap() ) {
+        for (auto& objPair : object) {
           // Get the directory that corresponds to this systematic
           TDirectory* systDir =
             getMkdir(directory, objPair.first + "/" + m_subDirName);

@@ -132,10 +132,13 @@ namespace RDFAnalysis {
 
   template <typename Detail> template <typename Monitor>
     void Node<Detail>::run(Monitor monitor) {
-      if (isRoot() )
+      if (isRoot() ) {
+        monitor.beginRun();
         m_rnodes.at(namer().nominalName() ).ForeachSlot(monitor);
-      else
+      }
+      else {
         m_parent->run(monitor);
+      }
     }
 
   template <typename Detail>
