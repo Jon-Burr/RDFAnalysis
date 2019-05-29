@@ -1,5 +1,10 @@
 cmake_minimum_required( VERSION 3.9 )
 
+# The version of ROOT on LCG seems to have a problem with davix so this library
+# must be provided directly to the call if necessary. Therefore when using LCG
+# cmake should be called with -DRDF_EXTRA_LIB=davix
+set(RDF_EXTRA_LIB "" CACHE STRING "Any extra libraries necessary to make RDataFrame compile")
+
 # ROOT version 6.16 at least is required as this introduces the RNode base class
 # that makes this approach possible.
 find_package( ROOT 6.16 REQUIRED COMPONENTS ROOTDataFrame Physics )
@@ -29,6 +34,7 @@ target_sources( RDFAnalysis
 # Link ROOT
 target_link_libraries( RDFAnalysis
     PUBLIC
+      ${RDF_EXTRA_LIB}
       ROOT::ROOTDataFrame
     PRIVATE
       Boost::boost

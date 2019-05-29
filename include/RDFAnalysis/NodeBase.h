@@ -244,7 +244,7 @@ namespace RDFAnalysis {
        */
       template <typename F, typename... Args,
                typename T=typename ROOT::TTraits::CallableTraits<F>::ret_type>
-        std::map<std::string, T> Act(
+        std::enable_if_t<!is_std_function<F>::value, std::map<std::string, T>> Act(
             F&& f,
             const ColumnNames_t& columns,
             Args&&... args)
@@ -337,7 +337,7 @@ namespace RDFAnalysis {
       template <typename F, typename... Args,
                typename T=typename ROOT::TTraits::CallableTraits<F>::ret_type,
                typename U=typename T::Value_t>
-        SysResultPtr<U> ActResult(
+        std::enable_if_t<!is_std_function<F>::value, SysResultPtr<U>> ActResult(
             F&& f,
             const ColumnNames_t& columns,
             Args&&... args)

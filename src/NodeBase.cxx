@@ -18,7 +18,8 @@ namespace RDFAnalysis {
     // We don't actually use the output of the action so we don't store it.
     // However we need there to be a return value for the lambda.
     // Note that this action updates the node passed in.
-    Act([] (RNode& rnode, const std::string& name, const std::string& expression) {
+    Act(
+       [] (RNode& rnode, const std::string& name, const std::string& expression) {
         return rnode = rnode.Define(name, expression); },
         columns,
         SysVarNewBranch(name),

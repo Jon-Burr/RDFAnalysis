@@ -127,6 +127,12 @@ namespace RDFAnalysis {
   /// Could perhaps be more natural in the IBranchNamer?
   std::string uniqueBranchName(const std::string& stub = "GenBranch");
 
+  template <typename F>
+    struct is_std_function : public std::false_type {};
+
+  template <typename R, typename... Ts>
+    struct is_std_function<std::function<R(Ts...)>> : public std::true_type {};
+
 }; //> end namespace RDFAnalysis
 
 #endif //> !RDFAnalysis_Helpers_H

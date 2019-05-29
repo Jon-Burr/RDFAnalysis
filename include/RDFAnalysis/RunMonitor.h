@@ -3,7 +3,7 @@
 
 #include <map>
 #include <boost/optional.hpp>
-#include <RTypes.h>
+#include <Rtypes.h>
 
 namespace RDFAnalysis {
   class RunMonitor {
