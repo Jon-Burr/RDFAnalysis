@@ -30,24 +30,24 @@ namespace RDFAnalysis {
         /// The node detail type we're templated on
         using detail_t = Detail;
         /**
-        * @brief Create the writer
-        * @param directory The directory to write into
-        */
+         * @brief Create the writer
+         * @param directory The directory to write into
+         */
         OutputWriter(const std::shared_ptr<TDirectory>& directory);
 
         /**
-        * @brief Create the writer, opening a file to do it
-        * @param fileName The file to create
-        * @param overwrite Whether or not to overwrite the output file.
-        */
+         * @brief Create the writer, opening a file to do it
+         * @param fileName The file to create
+         * @param overwrite Whether or not to overwrite the output file.
+         */
         OutputWriter(
             const std::string& fileName,
             bool overwrite = false);
 
         /**
-        * @brief Write information from the given node and all downstream.
-        * @param node The node to write from
-        */
+         * @brief Write information from the given node and all downstream.
+         * @param node The node to write from
+         */
         void write(Node<Detail>& node) { write(node, m_directory.get() ); }
 
         /// Add a writer  
@@ -64,6 +64,7 @@ namespace RDFAnalysis {
          * @tparam T The type of writer to add
          * @tparam Args The types of arguments for the writer constructor
          * @param args The arguments for the constructor.
+         *
          * This version constructs the writer in place. The writer type T will
          * be templated on the right Detail class.
          */

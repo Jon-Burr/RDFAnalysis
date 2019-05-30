@@ -46,6 +46,7 @@ namespace RDFAnalysis {
        * @param f The functor
        * @param columns The input variables (if any) to the functor
        * @return A non-owning pointer to this object.
+       *
        * The new column's data type will be the return type of the functor
        */
       template <typename F>
@@ -59,6 +60,7 @@ namespace RDFAnalysis {
        * @param name The name of the column to define
        * @param expression The string expression to interpret
        * @return A non-owning pointer to this object.
+       *
        * The new column's data type will be the return type of the JITted
        * function
        */
@@ -72,6 +74,7 @@ namespace RDFAnalysis {
        * @param expression The string expression to interpret
        * @param columns The input variables to the expression
        * @return A non-owning pointer to this object.
+       *
        * The new column's data type will be the return type of the JITted
        * function. The expression should have the column names replaced by
        * placeholders like {idx} (where idx is the index of the branch in the
@@ -91,6 +94,7 @@ namespace RDFAnalysis {
        * @param f The functor
        * @param columns  The inputs to the functor
        * @return a non-owning pointer to this object.
+       *
        * Use this function where you need to return multiple variables from a
        * single function. Note that the affecting systematics will be the same
        * for all of the returned objects so make sure that this is appropriate.
@@ -109,6 +113,7 @@ namespace RDFAnalysis {
 
       /**
        * @brief Get the name of the weight branch.
+       *
        * The name returned will be the base name, not resolved for any
        * systematic variation. If there is no weight set the empty string will
        * be returned.
@@ -138,7 +143,6 @@ namespace RDFAnalysis {
        * @tparam AccFun The type of the accumulation function
        * @tparam MergeFun The type of the merging function
        * @tparam U The return type of the accumulation function
-       *
        * @param aggregator The accumulation function
        * @param merger The merging function
        * @param columnName The column for the funtion to act on
@@ -165,7 +169,6 @@ namespace RDFAnalysis {
        * @tparam AccFun The type of the accumulation function
        * @tparam MergeFun The type of the merging function
        * @tparam U The return type of the accumulation function
-       *
        * @param aggregator The accumulation function
        * @param merger The merging function
        * @param columnName The column for the funtion to act on
@@ -456,6 +459,7 @@ namespace RDFAnalysis {
        * @brief Create child RNodes to be used for a filter from this node
        * @param expression The expression to describe the filter
        * @param columns The input variables to the expression
+       *
        * The expression should have the column names replaced by placeholders
        * like {idx} (where idx is the index of the branch in the columns
        * vector).
@@ -603,12 +607,6 @@ namespace RDFAnalysis {
 
       /// Any TObject pointers declared on this
       std::vector<SysResultPtr<TObject>> m_objects;
-
-      /* /// The node statistics */
-      /* SysResultPtr<ULong64_t> m_stats; */
-
-      /* /// The node statistics (including weights) */
-      /* SysResultPtr<std::pair<float, float>> m_weightedStats; */
   }; //> end class NodeBase
 } //> end namespace RDFAnalysis
 #include "RDFAnalysis/NodeBase.icc"

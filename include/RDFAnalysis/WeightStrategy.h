@@ -11,6 +11,7 @@
 namespace RDFAnalysis {
   enum class WeightStrategy {
     /**
+     * @enum WeightStrategy
      * @brief enum class to describe how weights are applied.
      *
      * There are two dimensions to the weighting strategy: whether the weight

@@ -46,6 +46,7 @@ namespace RDFAnalysis {
        * @brief Get the full name of a branch
        * @param branch The base name of the branch
        * @param systName The name of the variation
+       *
        * Search for a variation \ref systName on a branch \ref branch. If one
        * doesn't exist then it will return the nominal branch. If that doesn't
        * exist it will throw a std::out_of_range exception.
@@ -58,6 +59,7 @@ namespace RDFAnalysis {
        * @brief Get the full name of a branch
        * @param branch The base name of the branch
        * @param systName The name of the variation
+       *
        * Create a new variation \systName of branch \ref branch. If this already
        * exists then a std::runtime_error will be thrown.
        */
@@ -131,4 +133,4 @@ namespace RDFAnalysis {
 
   }; //> end class DefaultBranchNamer
 } //> end namespace RDFAnalysis
-#endif //> !RDFAnalysis_BranchNamer_H
+#endif //gb> !RDFAnalysis_BranchNamer_H

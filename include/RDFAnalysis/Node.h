@@ -44,6 +44,7 @@ namespace RDFAnalysis {
        * @param f The functor
        * @param columns The input variables (if any) to the functor
        * @return A non-owning pointer to this object.
+       *
        * The new column's data type will be the return type of the functor
        */
       template <typename F>
@@ -61,6 +62,7 @@ namespace RDFAnalysis {
        * @param name The name of the column to define
        * @param expression The string expression to interpret
        * @return A non-owning pointer to this object.
+       *
        * The new column's data type will be the return type of the JITted
        * function
        */
@@ -78,6 +80,7 @@ namespace RDFAnalysis {
        * @param expression The string expression to interpret
        * @param columns The input variables to the expression
        * @return A non-owning pointer to this object.
+       *
        * The new column's data type will be the return type of the JITted
        * function. The expression should have the column names replaced by
        * placeholders like {idx} (where idx is the index of the branch in the
@@ -101,6 +104,7 @@ namespace RDFAnalysis {
        * @param f The functor
        * @param columns  The inputs to the functor
        * @return a non-owning pointer to this object.
+       *
        * Use this function where you need to return multiple variables from a
        * single function. Note that the affecting systematics will be the same
        * for all of the returned objects so make sure that this is appropriate.
@@ -129,6 +133,7 @@ namespace RDFAnalysis {
        * @param name The name of the new node
        * @param cutflowName How the new node appears in the cutflow
        * @param strategy Weighting strategy for this weight
+       *
        * In this overload the functor calculates the pass decision and the
        * weight in one go, return std::make_tuple(pass, weight).
        */
@@ -264,6 +269,7 @@ namespace RDFAnalysis {
        * @brief Trigger the run
        * @param printEvery How often to print to the screen
        * @param total The total number of events
+       *
        * This is different to the function above in that it prints as a fraction
        * of the total.
        */
@@ -273,6 +279,7 @@ namespace RDFAnalysis {
        * @brief Trigger the run
        * @tparam Monitor The monitor type
        * @param monitor The monitor
+       *
        * Trigger the run, calling the operator()(unsigned int) of the monitor.
        * The argument to this call is the slot number. If you are not running in
        * a multi-threaded environment this will always be 0.
