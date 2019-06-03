@@ -38,6 +38,7 @@ namespace RDFAnalysis {
        * @brief Get the full name of a branch
        * @param branch The base name of the branch
        * @param systName The name of the variation
+       *
        * Search for a variation \ref systName on a branch \ref branch. If one
        * doesn't exist then it will return the nominal branch. If that doesn't
        * exist it will throw a std::out_of_range exception.
@@ -50,6 +51,7 @@ namespace RDFAnalysis {
        * @brief Get the full names of a list of branches
        * @param branches The base name of the branches
        * @param systName The name of the variation
+       *
        * Search for a variation \ref systName on a branch \ref branch. If one
        * doesn't exist then it will return the nominal branch. If that doesn't
        * exist it will throw a std::out_of_range exception.
@@ -64,6 +66,7 @@ namespace RDFAnalysis {
        * @param systName The name of the variation
        * @param isRNodeSys whether the ROOT::RNode the new branch will be added
        * to is specific to this systematic.
+       *
        * Create a new variation \systName of branch \ref branch. If this already
        * exists then a std::runtime_error will be thrown.
        */

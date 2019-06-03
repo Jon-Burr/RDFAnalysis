@@ -17,6 +17,7 @@ namespace RDFAnalysis {
   /**
    * @brief Wrapper class for RResultPtrs.
    * @tparam T the type wrapped.
+   *
    * This rather complicated structure is only necessary in ROOT v6.16 where
    * RResultPtrs cannot convert between accessible types.
    */
