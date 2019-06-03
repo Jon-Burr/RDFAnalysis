@@ -59,6 +59,9 @@ namespace RDFAnalysis {
         /// Const iterator to the end of the underlying map
         auto end() const { return m_wrappers.end(); }
 
+        /// Size of the map (i.e. the number of systematics affecting this
+        /// result)
+        std::size_t size() const { return m_wrappers.size(); }
 
         /// Set from a map
         void setMap(const std::map<std::string, ResultWrapper<T>>& newMap) { m_wrappers = newMap; }

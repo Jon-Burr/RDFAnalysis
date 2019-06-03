@@ -25,9 +25,10 @@ namespace RDFAnalysis {
         // Step back through the chain
         Node<Detail>* current = &node;
         while (current) {
-          cutflow.emplace(
-              current->cutflowName(),
-              *current->detail().stats().get(syst) );
+          if (!current->isAnonymous() )
+            cutflow.emplace(
+                current->cutflowName(),
+                *current->detail().stats().get(syst) );
           current = current->parent();
         }
         // Now go back through, creating the histogram
@@ -53,9 +54,19 @@ namespace RDFAnalysis {
         // Step back through the chain
         Node<Detail>* current = &node;
         while (current) {
-          cutflow.emplace(
-              current->cutflowName(),
-              *current->detail().weightedStats().get(syst) );
+          if (!current->isAnonymous() ) {
+            if (current->detail().weightedStats().size() == 0)
+              // If there's no weighted stats default to the unweighted
+              cutflow.emplace(
+                  current->cutflowName(),
+                  std::make_pair(
+                    *current->detail().stats().get(syst),
+                    *current->detail().stats().get(syst) ) );
+            else 
+              cutflow.emplace(
+                  current->cutflowName(),
+                  *current->detail().weightedStats().get(syst) );
+          }
           current = current->parent();
         }
         // Now go back trhough, creating the histogram
