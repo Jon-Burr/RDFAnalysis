@@ -1,0 +1,316 @@
+#ifndef RDFAnalysis_Scheduler_ICC
+#define RDFAnalysis_Scheduler_ICC
+
+#include <boost/algorithm/string/join.hpp>
+#include <limits>
+
+namespace RDFAnalysis {
+  template <typename Detail>
+    SchedulerBase::ScheduleNode Scheduler<Detail>::schedule()
+    {
+      // Get the schedule from the base class
+      ScheduleNode rsn = SchedulerBase::schedule(root()->namer() );
+      addNode(rsn, root() );
+      return rsn;
+    }
+
+  template <typename Detail>
+    void Scheduler<Detail>::registerVariableImpl(
+        const std::string& name,
+        std::function<void(node_t*)> action,
+        const std::set<std::string>& variables,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      if (m_variables.count(name) == 1)
+        throw std::runtime_error(
+            "Multiple definitions for filter '" + name + "'!");
+      m_variables[name] = action;
+      std::set<Action> dependencies;
+      for (const std::string& variable : variables)
+        dependencies.insert({VARIABLE, variable});
+      for (const std::string& filter : filters)
+        dependencies.insert({FILTER, filter});
+      addAction({VARIABLE, name, cost}, dependencies);
+      m_namer.createBranch(name);
+    }
+
+  template <typename Detail> template <typename F>
+    enable_ifn_string_t<F, void> Scheduler<Detail>::registerVariable(
+        const std::string& name, 
+        F f,
+        const ColumnNames_t& columns,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      registerVariableImpl(
+          name, 
+          [name, f, columns] (node_t* node) {node->Define(name, f, columns);},
+          {columns.begin(), columns.end()},
+          filters,
+          cost);
+    }
+
+  template <typename Detail>
+    void Scheduler<Detail>::registerVariable(
+        const std::string& name,
+        const std::string& expression,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      auto expanded = m_namer.expandExpression(expression);
+      registerVariable(name, expanded.first, expanded.second, filters, cost);
+    }
+
+  template <typename Detail>
+    void Scheduler<Detail>::registerVariable(
+        const std::string& name,
+        const std::string& expression,
+        const ColumnNames_t& columns,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      registerVariableImpl(
+          name,
+          [name, expression, columns] (node_t* node) {node->Define(name, expression, columns);},
+          {columns.begin(), columns.end()},
+          filters,
+          cost);
+    }
+
+  template <typename Detail> template <std::size_t N>
+    void Scheduler<Detail>::registerVariablesImpl(
+        const std::array<std::string, N>& names,
+        std::function<void(node_t*)> action,
+        const std::set<std::string>& variables,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      // This is a bit of an issue - the dependency modeling assumes one action
+      // defines one variable. The way we solve this is similar to how we define
+      // the actions in the underlying Node - first we define the action that
+      // actually produces all of the variables. Then we define dummy actions
+      // for each individual variable that depends on that first 'master'
+      // action.
+
+      // As with the Node, name the 'master' action with the names of all the
+      // individual variables separated by underscores
+      std::string fullName = "_" + boost::algorithm::join(names, "_") + "_";
+      registerVariableImpl(fullName, action, variables, filters, cost);
+
+      // Now add the dummy actions. These literally do nothing so give them the
+      // lowest possible cost
+      for (const std::string& name : names)
+        registerVariableImpl(name, [] (node_t*) {}, {fullName}, {},
+                         std::numeric_limits<float>::lowest() );
+    }
+
+  template <typename Detail> template <std::size_t N, typename F>
+    enable_ifn_string_t<F, void> Scheduler<Detail>::registerVariables(
+        const std::array<std::string, N>& names,
+        F f,
+        const ColumnNames_t& columns,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      registerVariablesImpl(
+          names,
+          [names, f, columns] (node_t* node) {node->Define(names, f, columns);},
+          {columns.begin(), columns.end()},
+          filters,
+          cost);
+    }
+
+  template <typename Detail>
+    void Scheduler<Detail>::registerFilterImpl(
+        const std::string& name,
+        std::function<node_t*(node_t*)> action,
+        const std::set<std::string>& variables,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      if (m_filters.count(name) == 1)
+        throw std::runtime_error(
+            "Multiple definitions for variable '" + name + "'!");
+      m_filters[name] = action;
+      std::set<Action> dependencies;
+      for (const std::string& variable : variables)
+        dependencies.insert({VARIABLE, variable});
+      for (const std::string& filter : filters)
+        dependencies.insert({FILTER, filter});
+      addAction({FILTER, name, cost}, dependencies);
+    }
+
+  template <typename Detail> template <typename F>
+    std::enable_if_t<std::is_convertible<typename ROOT::TTraits::CallableTraits<F>::ret_type, std::tuple<bool, float>>::value, void> Scheduler<Detail>::registerFilter(
+        F f,
+        const ColumnNames_t& columns,
+        const std::string& name,
+        const std::string& cutflowName,
+        WeightStrategy strategy,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      registerFilterImpl(
+          name,
+          [f, columns, name, cutflowName, strategy] (node_t* node)
+          { return node->Filter(f, columns, name, cutflowName, strategy); },
+          {columns.begin(), columns.end()},
+          filters,
+          cost);
+    }
+
+  template <typename Detail> template <typename F>
+    std::enable_if_t<std::is_convertible<typename ROOT::TTraits::CallableTraits<F>::ret_type, bool>::value, void> Scheduler<Detail>::registerFilter(
+        F f,
+        const ColumnNames_t& columns,
+        const std::string& name,
+        const std::string& cutflowName,
+        const std::string& weight,
+        WeightStrategy strategy,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      std::set<std::string> variables(columns.begin(), columns.end() );
+      auto expanded = m_namer.expandExpression(weight);
+      variables.insert(expanded.second.begin(), expanded.second.end() );
+      registerFilterImpl(
+          name,
+          [f, columns, name, cutflowName, strategy] (node_t* node)
+          { return node->Filter(f, columns, name, cutflowName, strategy); },
+          variables,
+          filters,
+          cost);
+    }
+
+  template <typename Detail>
+    void Scheduler<Detail>::registerFilter(
+        const std::string& expression,
+        const std::string& name,
+        const std::string& cutflowName,
+        const std::string& weight,
+        WeightStrategy strategy,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      std::set<std::string> variables;
+      auto exprExpanded = m_namer.expandExpression(expression);
+      variables.insert(exprExpanded.second.begin(), exprExpanded.second.end() );
+      auto weightExpanded = m_namer.expandExpression(weight);
+      variables.insert(weightExpanded.second.begin(), weightExpanded.second.end() );
+      registerFilterImpl(
+          name,
+          [expression, name, cutflowName, weight, strategy] (node_t* node)
+          { return node->Filter(expression, name, cutflowName, weight, strategy); },
+          variables,
+          filters,
+          cost);
+    }
+
+  template <typename Detail> template <typename F, typename W>
+    std::enable_if_t<!std::is_convertible<F, std::string>::value && !std::is_convertible<W, std::string>::value, void> Scheduler<Detail>::registerFilter(
+        F f,
+        const ColumnNames_t& columns,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& weightColumns,
+        WeightStrategy strategy,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      std::set<std::string> variables(columns.begin(), columns.end() );
+      variables.insert(weightColumns.begin(), weightColumns.end() );
+      registerFilterImpl(
+          name,
+          [f, columns, name, cutflowName, w, weightColumns, strategy] (node_t* node)
+          { return node->Filter(f, columns, name, cutflowName, w, weightColumns, strategy); },
+          variables,
+          filters,
+          cost);
+    }
+
+  template <typename Detail> template <typename W>
+    enable_ifn_string_t<W, void> Scheduler<Detail>::registerFilter(
+        const std::string& expression,
+        const std::string& name,
+        const std::string& cutflowName,
+        W w,
+        const ColumnNames_t& weightColumns,
+        WeightStrategy strategy,
+        const std::set<std::string>& filters,
+        float cost)
+    {
+      std::set<std::string> variables(weightColumns.begin(), weightColumns.end() );
+      auto expanded = m_namer.expandExpression(expression);
+      variables.insert(expanded.second.begin(), expanded.second.end() );
+      registerFilterImpl(
+          name,
+          [expression, name, cutflowName, w, weightColumns, strategy] (node_t* node)
+          { return node->Filter(expression, name, cutflowName, w, weightColumns, strategy); },
+          variables,
+          filters,
+          cost);
+    }
+
+  template <typename Detail>
+    void Scheduler<Detail>::registerFillImpl(
+        const std::string& name,
+        std::function<void(node_t*)> action,
+        const std::set<std::string>& variables,
+        const std::set<std::string>& filters)
+    {
+      if (m_fills.count(name) == 1)
+        throw std::runtime_error(
+            "Multiple definitions for fill '" + name + "'!");
+      m_fills[name] = action;
+      std::set<Action> dependencies;
+      for (const std::string& variable : variables)
+        dependencies.insert({VARIABLE, variable});
+      for (const std::string& filter : filters)
+        dependencies.insert({FILTER, filter});
+      addAction({FILL, name}, dependencies);
+    }
+
+  template <typename Detail> template <typename T>
+    void Scheduler<Detail>::registerFill(
+        const T& model,
+        const ColumnNames_t& columns,
+        const std::string& weight,
+        WeightStrategy strategy,
+        const std::set<std::string>& filters)
+    {
+      registerFillImpl(
+          model.GetName(),
+          [model, columns, weight, strategy] (node_t* node)
+          { return node->Fill(model, columns, weight, strategy); },
+          {columns.begin(), columns.end()},
+          filters);
+    }
+
+  template <typename Detail>
+    void Scheduler<Detail>::addNode(
+        const ScheduleNode& source,
+        node_t* target)
+    {
+      std::cout << "Add node " << source.action.name << std::endl;
+      if (source.action.name != "ROOT") {
+        // Don't copy anything across from ROOT
+        switch(source.action.type) {
+          case FILTER:
+            target = m_filters.at(source.action.name)(target);
+            break;
+          case VARIABLE:
+            m_variables.at(source.action.name)(target);
+            break;
+          case FILL:
+            m_fills.at(source.action.name)(target);
+            break;
+        }
+      }
+      for (const ScheduleNode& child : source.children)
+        addNode(child, target);
+    }
+} //> end namespace RDFAnalysis
+
+#endif //> !RDFAnalysis_Scheduler_ICC

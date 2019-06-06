@@ -61,11 +61,10 @@ namespace RDFAnalysis {
           const std::string& systName = "") const;
 
       /**
-       * @brief Get the full name of a branch
+       * @brief Create a new branch
        * @param branch The base name of the branch
        * @param systName The name of the variation
-       * @param isRNodeSys whether the ROOT::RNode the new branch will be added
-       * to is specific to this systematic.
+       * @return The new branch name
        *
        * Create a new variation \systName of branch \ref branch. If this already
        * exists then a std::runtime_error will be thrown.

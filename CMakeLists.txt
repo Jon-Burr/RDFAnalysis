@@ -3,7 +3,7 @@ cmake_minimum_required( VERSION 3.9 )
 # ROOT version 6.16 at least is required as this introduces the RNode base class
 # that makes this approach possible.
 find_package( ROOT 6.16 REQUIRED COMPONENTS ROOTDataFrame Physics )
-find_package( Boost COMPONENTS program_options REQUIRED )
+find_package( Boost )
 include(${ROOT_USE_FILE})
 
 # Define the library created here
@@ -24,13 +24,12 @@ target_sources( RDFAnalysis
       src/RunMonitor.cxx
       src/Helpers.cxx
       src/WeightStrategy.cxx
+      src/SchedulerBase.cxx
     )
 
-# Link ROOT
 target_link_libraries( RDFAnalysis
     PUBLIC
       ROOT::ROOTDataFrame
-    PRIVATE
       Boost::boost
     )
 
