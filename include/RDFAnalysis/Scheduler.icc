@@ -24,7 +24,7 @@ namespace RDFAnalysis {
     {
       if (m_variables.count(name) == 1)
         throw std::runtime_error(
-            "Multiple definitions for filter '" + name + "'!");
+            "Multiple definitions for variable '" + name + "'!");
       m_variables[name] = action;
       std::set<Action> dependencies;
       for (const std::string& variable : variables)
@@ -131,7 +131,7 @@ namespace RDFAnalysis {
     {
       if (m_filters.count(name) == 1)
         throw std::runtime_error(
-            "Multiple definitions for variable '" + name + "'!");
+            "Multiple definitions for filter '" + name + "'!");
       m_filters[name] = action;
       std::set<Action> dependencies;
       for (const std::string& variable : variables)
@@ -176,8 +176,8 @@ namespace RDFAnalysis {
       variables.insert(expanded.second.begin(), expanded.second.end() );
       registerFilterImpl(
           name,
-          [f, columns, name, cutflowName, strategy] (node_t* node)
-          { return node->Filter(f, columns, name, cutflowName, strategy); },
+          [f, columns, name, cutflowName, weight, strategy] (node_t* node)
+          { return node->Filter(f, columns, name, cutflowName, weight, strategy); },
           variables,
           filters,
           cost);
@@ -293,7 +293,6 @@ namespace RDFAnalysis {
         const ScheduleNode& source,
         node_t* target)
     {
-      std::cout << "Add node " << source.action.name << std::endl;
       if (source.action.name != "ROOT") {
         // Don't copy anything across from ROOT
         switch(source.action.type) {

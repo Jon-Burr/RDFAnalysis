@@ -64,32 +64,10 @@ namespace RDFAnalysis {
         std::vector<ScheduleNode> children;
         std::string region;
 
-        const Action& next() const {
-          auto itr = dependencies.begin();
-          for (; itr != dependencies.end(); ++itr)
-            if (itr->second.empty() )
-              break;
-          if (itr == dependencies.end() ) {
-            for (const auto& dep : dependencies) {
-              std::cout << dep.first.name << ": ";
-              for (const auto& dep2 : dep.second)
-                std::cout << dep2.name << ", ";
-              std::cout << std::endl;
-            }
-            throw std::out_of_range(
-                "No next action left on " + action.name);
-          }
-          return itr->first;
-        }
+        const Action& next() const;
 
         /// Remove a dependency from consideration
-        void removeDependency(const Action& action) {
-          // Remove this action if it's a direct dependency
-          dependencies.erase(action);
-          // Remove this action from any indirect dependencies
-          for (auto& dep : dependencies)
-            dep.second.erase(action);
-        }
+        void removeDependency(Action action);
 
         /// Expand this node's dependencies
         void expand(

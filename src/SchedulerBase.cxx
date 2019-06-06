@@ -47,10 +47,12 @@ namespace {
           switch(prop.first) {
             case RDFAnalysis::SchedulerBase::FILTER:
               shape = "diamond";
+              break;
             case RDFAnalysis::SchedulerBase::VARIABLE:
               shape = "oval";
+              break;
             default:
-              shape = "square";
+              shape = "box";
           }
           out << "[label=\"" << prop.second << "\" shape=" << shape << "]";
         }
@@ -108,7 +110,6 @@ namespace RDFAnalysis {
       const std::set<Action>& preExisting,
       std::vector<Action>& processing) const 
   {
-    std::cout << "Expanding " << name << std::endl;
     if (std::count(processing.begin(), processing.end(), *this) )
       throw std::runtime_error(
           "Circular dependency found on " + name + "!");
@@ -153,6 +154,34 @@ namespace RDFAnalysis {
 
   void SchedulerBase::Action::retrieveCost(const SchedulerBase& scheduler) {
     cost = scheduler.getCost(*this);
+  }
+
+  const SchedulerBase::Action& SchedulerBase::ScheduleNode::next() const
+  {
+    auto itr = dependencies.begin();
+    for (; itr != dependencies.end(); ++itr)
+      if (itr->second.empty() )
+        break;
+    if (itr == dependencies.end() ) {
+      throw std::out_of_range(
+          "No next action left on " + action.name);
+    }
+    return itr->first;
+  }
+
+  void SchedulerBase::ScheduleNode::removeDependency(Action action)
+  {
+    auto itr = dependencies.begin();
+    while (itr != dependencies.end() ) {
+      if (itr->first == action)
+        // remove the action as a direct dependency
+        itr = dependencies.erase(itr);
+      else {
+        // remove the action as an indirect dependency
+        itr->second.erase(action);
+        ++itr;
+      }
+    }
   }
 
   void SchedulerBase::addAction(
@@ -201,9 +230,7 @@ namespace RDFAnalysis {
   SchedulerBase::ScheduleNode SchedulerBase::schedule(
       const IBranchNamer& namer) const
   {
-    std::cout << "Build raw schedule" << std::endl;
     ScheduleNode rawRoot = rawSchedule();
-    std::cout << "Prepare output" << std::endl;
     // Prepare the output
     ScheduleNode root({FILTER, "ROOT"});
     // What pre-existing dependencies are there (i.e. variables in the input
@@ -212,7 +239,6 @@ namespace RDFAnalysis {
     for (const std::string& branch : namer.branches() )
       preExisting.insert({VARIABLE, branch});
 
-    std::cout << "begin" << std::endl;
     // Expand all of the children of the raw root node
     for (ScheduleNode& child : rawRoot.children)
       child.expand(*this, preExisting);
@@ -283,16 +309,6 @@ namespace RDFAnalysis {
       ScheduleNode* target,
       std::set<Action> preExisting) const
   {
-    for (const ScheduleNode& source : sources) {
-      std::cout << source.action.name << ": ";
-      for (const auto& dep : source.dependencies)
-        std::cout << dep.first.name << ", ";
-      std::cout << std::endl;
-      std::cout << source.action.name << ": ";
-      for (const auto& dep : getDependencies(source.action) )
-        std::cout << dep.name << ", ";
-      std::cout << std::endl;
-    }
     // End early if there's nothing to do
     if (sources.empty() )
       return;
