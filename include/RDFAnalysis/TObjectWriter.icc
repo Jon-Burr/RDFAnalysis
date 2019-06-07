@@ -13,6 +13,7 @@ namespace RDFAnalysis {
         TDirectory* directory,
         std::size_t /* depth */)
     {
+      std::cout << "Calling write on " << node.name() << " to " << directory->GetName() << std::endl;
       // Loop over each object and save it
       for (SysResultPtr<TObject>& object : node.objects() ) {
         for (auto& objPair : object) {

@@ -3,6 +3,7 @@
 
 // package includes
 #include "RDFAnalysis/INodeWriter.h"
+#include "RDFAnalysis/Scheduler.h"
 
 // ROOT includes
 #include <TDirectory.h>
@@ -48,7 +49,20 @@ namespace RDFAnalysis {
          * @brief Write information from the given node and all downstream.
          * @param node The node to write from
          */
-        void write(Node<Detail>& node) { write(node, m_directory.get() ); }
+        void write(Node<Detail>& node) { writeFullTree(node, m_directory.get() ); }
+
+        /**
+         * @brief Write information from the regions defined by a scheduler.
+         * @param scheduler The scheduler to read from
+         */
+        void write(const Scheduler<Detail>& scheduler)
+        { write(scheduler.regions() ); }
+
+        /**
+         * @brief Write information from list of named nodes
+         * @param regions Mapping of output directory names to nodes
+         */
+        void write(const std::map<std::string, Node<Detail>*>& regions);
 
         /// Add a writer  
         void addWriter(const std::shared_ptr<INodeWriter<Detail>>& writer)
@@ -88,11 +102,15 @@ namespace RDFAnalysis {
         /// The writers
         std::vector<std::shared_ptr<INodeWriter<Detail>>> m_writers;
 
-        /// Write directly to a directory
-        void write(
+        void writeFullTree(
             Node<Detail>& node,
             TDirectory* directory,
             std::size_t depth = 0);
+
+        void writeNode(
+            Node<Detail>& node,
+            TDirectory* directory,
+            std::size_t depth);
     }; //> end class OutputWriter
 } //> end namespace RDFAnalysis
 #include "RDFAnalysis/OutputWriter.icc"

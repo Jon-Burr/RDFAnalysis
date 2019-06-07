@@ -21,27 +21,45 @@ namespace RDFAnalysis {
 
   template <typename Detail>
     void OutputWriter<Detail>::write(
+        const std::map<std::string, Node<Detail>*>& regions)
+    {
+      for (const auto& regionPair : regions) {
+        TDirectory* newDirectory = getMkdir(m_directory.get(), regionPair.first);
+        writeNode(*regionPair.second, newDirectory, /* depth = */0);
+      }
+    }
+
+  template <typename Detail>
+    void OutputWriter<Detail>::writeFullTree(
         Node<Detail>& node,
         TDirectory* directory,
         std::size_t depth)
     {
-      directory->cd();
-      // Apply all of the writers - writers are not applied to anonymous nodes!
       if (!node.isAnonymous() )
-        for (std::shared_ptr<INodeWriter<Detail>>& writer : m_writers)
-          writer->write(node, directory, depth);
+        writeNode(node, directory, depth);
 
       // Now go through all of this node's children
       for (std::unique_ptr<Node<Detail>>& child : node.children() ) {
         // If the child is anonymous then just pass down what we have now
         if (child->isAnonymous() )
-          write(*child, directory, depth);
+          writeFullTree(*child, directory, depth);
         else {
           // Otherwise create a new directory for this
           TDirectory* newDirectory = getMkdir(directory, child->name() );
-          write(*child, newDirectory, depth + 1);
+          writeFullTree(*child, newDirectory, depth + 1);
         }
       }
+    }
+
+  template <typename Detail>
+    void OutputWriter<Detail>::writeNode(
+        Node<Detail>& node,
+        TDirectory* directory,
+        std::size_t depth)
+    {
+      directory->cd();
+      for (std::shared_ptr<INodeWriter<Detail>>& writer : m_writers)
+        writer->write(node, directory, depth);
     }
 } //> end namespace RDFAnalysis
 #endif //> !RDFAnalysis_OutputWriter_ICC
