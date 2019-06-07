@@ -215,8 +215,7 @@ namespace RDFAnalysis {
           newColumns,
           T(model),
           SysVarBranchVector(newColumns) );
-      if (!isAnonymous() )
-        m_objects.push_back(result);
+      m_objects.push_back(result);
       return result; 
     }
 
