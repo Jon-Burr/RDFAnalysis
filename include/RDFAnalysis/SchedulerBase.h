@@ -29,6 +29,20 @@ namespace RDFAnalysis {
       const std::map<std::string, RegionDef>& regionDefs() const
       { return m_regionDefs;}
 
+      /**
+       * @brief Tell the scheduler that a filter also satisfies the condition of
+       * other filters
+       * @param filter The filter
+       * @param satisfied Other filters that this filter satisfies.
+       *
+       * For example, x == 4 clearly satisfies the filter x > 2 so any action
+       * that depends on this selection does not need to sequence 'x > 2' if 'x
+       * == 4' has already been scheduled.
+       */
+      void filterSatisfies(
+          const std::string& filter,
+          const std::vector<std::string>& satisfied);
+
       struct Action {
         Action(ActionType type, const std::string& name, float cost = 0) :
           type(type), name(name), cost(cost) {}
@@ -67,7 +81,7 @@ namespace RDFAnalysis {
         const Action& next() const;
 
         /// Remove a dependency from consideration
-        void removeDependency(Action action);
+        void removeDependency(Action action, const SchedulerBase& scheduler);
 
         /// Expand this node's dependencies
         void expand(
@@ -107,6 +121,38 @@ namespace RDFAnalysis {
       float getCost(const Action& action) const;
 
       /**
+       * @brief Check whether an action has already been satisfied by one of a
+       * list of candidates.
+       * @param action The action to check for
+       * @param candidates Candidates that could have satisfied it.
+       */
+      bool isActionSatisfiedBy(
+          const Action& action,
+          const std::set<Action>& candidates) const;
+
+      /**
+       * @brief Check whether an action has already been satisfied by one of a
+       * list of candidates.
+       * @param action The action to check for
+       * @param candidates Candidates that could have satisfied it.
+       * @param[out] satisfiedBy If the action has already been satisfied, fill
+       * this reference with the name of the candidate that satisfied it
+       */
+      bool isActionSatisfiedBy(
+          const Action& action,
+          const std::set<Action>& candidates,
+          std::string& satisfiedBy) const;
+
+      /**
+       * @brief Tell the scheduler that an action is defining multiple variables
+       * @param name The name of the action
+       * @param defined The list of variables.
+       */
+      void actionDefinesMultipleVariables(
+          const std::string& name,
+          const std::vector<std::string>& defined);
+
+      /**
        * @brief Build the schedule
        * @param namer IBranchNamer that provides the list of predefined
        * variables.
@@ -126,12 +172,18 @@ namespace RDFAnalysis {
           std::vector<ScheduleNode>&& sources,
           ScheduleNode* target,
           std::set<Action> preExisting) const;
+    private:
 
       /// The region definitions
       std::map<std::string, RegionDef> m_regionDefs;
 
       /// Defined actions and their dependencies
       std::map<Action, std::set<Action>> m_dependencies;
+
+      /// Keep track of actions that can be satisfied by other dependencies.
+      /// This can happen when a single action defines multiple variables or
+      /// when one filter is necessarily tighter than another
+      std::map<Action, std::set<Action>> m_satisfiedBy;
   }; //> end namespace SchedulerBase
 } //> end namespace RDFAnalysis
 
