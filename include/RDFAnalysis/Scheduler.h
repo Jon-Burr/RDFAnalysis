@@ -35,8 +35,28 @@ namespace RDFAnalysis {
         /// the whole data structure.
         node_t* root() { return m_root; }
 
-        /// Schedule the analysis
-        ScheduleNode schedule();
+        /**
+         * @brief Schedule the analysis
+         * @param graphFile If set, write the schedule to this file.
+         */
+        ScheduleNode schedule(const std::string& graphFile = "");
+        
+        /**
+         * @brief Get the string->region mapping.
+         *
+         * This map is filled by the schedule function so will not be valid
+         * before this has been called.
+         */
+        std::map<std::string, node_t*>& regions() { return m_regions; }
+        
+        /**
+         * @brief Get the string->region mapping.
+         *
+         * This map is filled by the schedule function so will not be valid
+         * before this has been called.
+         */
+        const std::map<std::string, node_t*>& regions() const
+        { return m_regions; }
 
         /**
          * @brief Register a new variable
@@ -281,6 +301,9 @@ namespace RDFAnalysis {
         node_t* m_root;
         /// The namer
         ScheduleNamer m_namer;
+        /// After scheduling, pointers to the end nodes for all defined regions
+        /// will be here
+        std::map<std::string, node_t*> m_regions;
         /// Copy information across from the Schedule node to the actual node
         void addNode(const ScheduleNode& source, node_t* target);
     }; //> end class Scheduler

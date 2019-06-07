@@ -3,13 +3,19 @@
 
 #include <boost/algorithm/string/join.hpp>
 #include <limits>
+#include <fstream>
 
 namespace RDFAnalysis {
   template <typename Detail>
-    SchedulerBase::ScheduleNode Scheduler<Detail>::schedule()
+    SchedulerBase::ScheduleNode Scheduler<Detail>::schedule(
+        const std::string& graphFile)
     {
       // Get the schedule from the base class
       ScheduleNode rsn = SchedulerBase::schedule(root()->namer() );
+      if (!graphFile.empty() ) {
+        std::ofstream of(graphFile);
+        printSchedule(of, rsn);
+      }
       addNode(rsn, root() );
       return rsn;
     }
@@ -86,23 +92,11 @@ namespace RDFAnalysis {
         const std::set<std::string>& filters,
         float cost)
     {
-      // This is a bit of an issue - the dependency modeling assumes one action
-      // defines one variable. The way we solve this is similar to how we define
-      // the actions in the underlying Node - first we define the action that
-      // actually produces all of the variables. Then we define dummy actions
-      // for each individual variable that depends on that first 'master'
-      // action.
-
-      // As with the Node, name the 'master' action with the names of all the
-      // individual variables separated by underscores
-      std::string fullName = "_" + boost::algorithm::join(names, "_") + "_";
+      std::string fullName = boost::algorithm::join(names, ", ");
       registerVariableImpl(fullName, action, variables, filters, cost);
-
-      // Now add the dummy actions. These literally do nothing so give them the
-      // lowest possible cost
+      actionDefinesMultipleVariables(fullName, {names.begin(), names.end()});
       for (const std::string& name : names)
-        registerVariableImpl(name, [] (node_t*) {}, {fullName}, {},
-                         std::numeric_limits<float>::lowest() );
+        m_namer.createBranch(name);
     }
 
   template <typename Detail> template <std::size_t N, typename F>
@@ -307,6 +301,9 @@ namespace RDFAnalysis {
             break;
         }
       }
+      // Does this node define a region?
+      if (!source.region.empty() )
+        m_regions[source.region] = target;
       for (const ScheduleNode& child : source.children)
         addNode(child, target);
     }

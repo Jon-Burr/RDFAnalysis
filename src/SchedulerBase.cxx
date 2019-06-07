@@ -104,6 +104,14 @@ namespace RDFAnalysis {
     region.filterList = filterList;
     return region;
   }
+
+  void SchedulerBase::filterSatisfies(
+      const std::string& filter,
+      const std::vector<std::string>& satisfied)
+  {
+    for (const std::string& f : satisfied)
+      m_satisfiedBy[Action(FILTER, f)].insert({FILTER, filter});
+  }
   
   std::map<SchedulerBase::Action, std::set<SchedulerBase::Action>, SchedulerBase::Action::CostOrdering> SchedulerBase::Action::expand(
       const SchedulerBase& scheduler,
@@ -117,6 +125,25 @@ namespace RDFAnalysis {
     // Create a copy of this and make sure that we have the correct cost from
     // the scheduler
     Action thisCopy(*this);
+    if (type == VARIABLE) {
+      std::set<Action> loopTracker;
+      while (!scheduler.m_dependencies.count(thisCopy) ) {
+        if (!loopTracker.insert(thisCopy).second)
+          throw std::runtime_error(
+              "Closed loop found in satisfaction relations!");
+        // Actions that can be satisfied by other actions may have no entry in
+        // the dependencies map. In this case, look for them in the 'satisfied
+        // by' map
+        auto itr = scheduler.m_satisfiedBy.find(thisCopy);
+        if (itr == scheduler.m_satisfiedBy.end() || itr->second.size() == 0)
+          throw std::runtime_error(
+              "No action of type '" +
+              actionTypeToString(type) +
+              "' and name '" + name + "' defined!");
+        // Just use the first one
+        thisCopy = *itr->second.begin();
+      }
+    }
     thisCopy.retrieveCost(scheduler);
     // Prepare the output
     std::map<Action, std::set<Action>, CostOrdering> output;
@@ -128,7 +155,7 @@ namespace RDFAnalysis {
     // Read the dependencies from the scheduler
     for (const Action& dep : scheduler.getDependencies(thisCopy) ) {
       // Skip any dependency that is already satisfied
-      if (preExisting.count(dep) )
+      if (scheduler.isActionSatisfiedBy(dep, preExisting) )
         continue;
       // Expand this dependency
       std::map<Action, std::set<Action>, CostOrdering> expanded = dep.expand(
@@ -169,17 +196,24 @@ namespace RDFAnalysis {
     return itr->first;
   }
 
-  void SchedulerBase::ScheduleNode::removeDependency(Action action)
+  void SchedulerBase::ScheduleNode::removeDependency(
+      Action action, const SchedulerBase& scheduler)
   {
-    auto itr = dependencies.begin();
-    while (itr != dependencies.end() ) {
-      if (itr->first == action)
+    auto directItr = dependencies.begin();
+    while (directItr != dependencies.end() ) {
+      if (scheduler.isActionSatisfiedBy(directItr->first, {action}) )
         // remove the action as a direct dependency
-        itr = dependencies.erase(itr);
+        directItr = dependencies.erase(directItr);
       else {
-        // remove the action as an indirect dependency
-        itr->second.erase(action);
-        ++itr;
+        auto indirectItr = directItr->second.begin();
+        while (indirectItr != directItr->second.end() ) {
+          if (scheduler.isActionSatisfiedBy(*indirectItr, {action}) )
+            // remove the action as an indirect dependency
+            indirectItr = directItr->second.erase(indirectItr);
+          else
+            ++indirectItr;
+        }
+        ++directItr;
       }
     }
   }
@@ -225,6 +259,49 @@ namespace RDFAnalysis {
           actionTypeToString(action.type) +
           "' and name '" + action.name + "' defined!");
     return itr->first.cost;
+  }
+
+  bool SchedulerBase::isActionSatisfiedBy(
+      const Action& action,
+      const std::set<Action>& candidates) const
+  {
+    std::string satisfiedBy;
+    return isActionSatisfiedBy(action, candidates, satisfiedBy);
+  }
+
+  bool SchedulerBase::isActionSatisfiedBy(
+      const Action& action,
+      const std::set<Action>& candidates,
+      std::string& satisfiedBy) const
+  {
+    if (candidates.count(action) ) {
+      satisfiedBy = action.name;
+      return true;
+    }
+    auto itr = m_satisfiedBy.find(action);
+    if (itr == m_satisfiedBy.end() )
+      // This action isn't satisfied by anything else.
+      return false;
+    std::vector<Action> isSatisfiedBy;
+    std::set_intersection(
+        candidates.begin(), candidates.end(),
+        itr->second.begin(), itr->second.end(),
+        std::back_inserter(isSatisfiedBy) );
+    if (isSatisfiedBy.size() > 0) {
+      satisfiedBy = isSatisfiedBy.begin()->name;
+      return true;
+    }
+    else
+      return false;
+  }
+
+  void SchedulerBase::actionDefinesMultipleVariables(
+      const std::string& name,
+      const std::vector<std::string>& defined)
+  {
+    for (const std::string& def : defined) {
+      m_satisfiedBy[Action(VARIABLE, def)].insert({VARIABLE, name});
+    }
   }
 
   SchedulerBase::ScheduleNode SchedulerBase::schedule(
@@ -314,10 +391,19 @@ namespace RDFAnalysis {
       return;
     // If any of the sources actions are in the preExisting set then this is an
     // inconsistent set up (the filter order won't be what the user wanted).
-    for (const ScheduleNode& source : sources)
-      if (source.action.type == FILTER && preExisting.count(source.action) )
-        throw std::runtime_error("Filter '" + source.action.name +
-            "' already exists in the schedule! It was probably added as a dependency");
+    for (const ScheduleNode& source : sources) {
+      std::string name;
+      if (source.action.type == FILTER &&
+          isActionSatisfiedBy(source.action, preExisting, name) ) {
+        std::string err = "Filter '" + source.action.name;
+        if (name == source.action.name)
+          err += "' already exists in the schedule!";
+        else
+          err += "' was already satisfied by '" + name + "'!";
+        err += " This was probably added as a dependency.";
+        throw std::runtime_error(err);
+      }
+    }
     // Note - this assumes that the last thing in each source is a filter. This
     // is true so long as the rawSchedule function doesn't change
     ScheduleNode* current = target;
@@ -331,7 +417,7 @@ namespace RDFAnalysis {
           current = &current->children.back();
           preExisting.insert(toAdd);
           for (ScheduleNode& source : sources)
-            source.removeDependency(toAdd);
+            source.removeDependency(toAdd, *this);
           break;
         }
       }
@@ -352,8 +438,16 @@ namespace RDFAnalysis {
       auto itr = groupedPair.second.begin();
       while (itr != groupedPair.second.end() ) {
         // Remove the filter from our dependencies
-        itr->removeDependency(groupedPair.first);
+        itr->removeDependency(groupedPair.first, *this);
         if (itr->dependencies.empty() ) {
+          if (!itr->region.empty() ) {
+            if (current->children.back().region.empty() )
+              current->children.back().region = itr->region;
+            else
+              throw std::runtime_error("Region definitions for '"+
+                  current->children.back().region + "' and '" + itr->region +
+                  "' are identical after dependency resolution!");
+          }
           // We've done everything we need to for this source
           std::move(itr->children.begin(), itr->children.end(),
               std::back_inserter(nextChildren) );
