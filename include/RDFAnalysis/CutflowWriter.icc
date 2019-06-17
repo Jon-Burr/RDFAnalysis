@@ -25,7 +25,7 @@ namespace RDFAnalysis {
         // Step back through the chain
         Node<Detail>* current = &node;
         while (current) {
-          if (!current->isAnonymous() )
+          if (!current->cutflowName().empty() )
             cutflow.emplace(
                 current->cutflowName(),
                 *current->detail().stats().get(syst) );
@@ -54,7 +54,7 @@ namespace RDFAnalysis {
         // Step back through the chain
         Node<Detail>* current = &node;
         while (current) {
-          if (!current->isAnonymous() ) {
+          if (!current->cutflowName().empty() ) {
             if (current->detail().weightedStats().size() == 0)
               // If there's no weighted stats default to the unweighted
               cutflow.emplace(
