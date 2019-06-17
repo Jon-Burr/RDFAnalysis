@@ -105,7 +105,7 @@ namespace RDFAnalysis {
         template <typename U,
                   typename = std::enable_if_t<std::is_base_of<T, U>{}, void>
                  >
-          SysResultPtr(SysResultPtr<U>& other) :
+          SysResultPtr(const SysResultPtr<U>& other) :
             m_nominal(other.m_nominal)
           {
             for (const auto& p : other)
