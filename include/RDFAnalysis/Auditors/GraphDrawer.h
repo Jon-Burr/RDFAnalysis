@@ -4,6 +4,11 @@
 #include "RDFAnalysis/Auditors/IAuditor.h"
 
 namespace RDFAnalysis {
+  /**
+   * @brief Base class that doesn't depend on the detail type
+   *
+   * This is the base class for the GraphDrawer auditor.
+   */
   class GraphDrawerBase {
     public:
       /// Store properties for the output graph and their defaults here.
@@ -35,6 +40,7 @@ namespace RDFAnalysis {
       const Properties& properties() const { return m_properties; }
 
     protected:
+      /// Print the graphviz schedule to the output file
       void printSchedule(const SchedulerBase::ScheduleNode& source);
       /// The output file name
       std::string m_fileName;
@@ -42,12 +48,17 @@ namespace RDFAnalysis {
       Properties m_properties;
 
   }; //> end class GraphDrawerBase
+
+  /**
+   * @brief Auditor to draw the scheduled graph using graphviz.
+   * @tparam Detail The detail type of the nodes.
+   */
   template <typename Detail> class GraphDrawer : public IAuditor<Detail>,
                                                  public GraphDrawerBase
   {
     public:
+      /// The node type that this is applied to
       using node_t = typename IAuditor<Detail>::node_t;
-
 
       /**
        * @brief Set up the drawer

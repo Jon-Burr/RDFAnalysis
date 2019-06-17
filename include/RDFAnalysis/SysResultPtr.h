@@ -71,7 +71,7 @@ namespace RDFAnalysis {
 
         /**
          * @brief Get the result pointed to
-         * @param systematic The variation to retrieve
+         * @param syst The variation to retrieve
          * If the variation doesn't exist then return the nominal.
          */
         T* get(const std::string& syst) 
@@ -100,7 +100,7 @@ namespace RDFAnalysis {
         /**
          * @brief Allow type conversions in copy construction
          * @tparam U The held type of the other object
-         * @param The object to copy
+         * @param other The object to copy
          */
         template <typename U,
                   typename = std::enable_if_t<std::is_base_of<T, U>{}, void>

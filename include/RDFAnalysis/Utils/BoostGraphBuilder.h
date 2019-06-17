@@ -32,17 +32,26 @@ namespace RDFAnalysis { namespace detail {
       public:
         /// The vertex struct
         struct Vertex {
+          /// Default construct the vertex
           Vertex() {}
+          /// Construct the vertex from its info
           Vertex(const VertexInfo& info) : info(info) {}
+          /// The information attached to a vertex
           VertexInfo info;
         }; //> end struct Vertex
         // Type defs
+        /// The input node type
         using input_node_t = InputNode;
+        /// The vertex info type
         using vertex_info_t = VertexInfo;
+        /// The child iterator type
         using child_itr_t = ChildItr;
+        /// The BGL graph type
         using graph_t = boost::adjacency_list<
           boost::vecS, boost::vecS, boost::directedS, Vertex>;
+        /// The BGL vertex type
         using vert_desc_t = typename boost::graph_traits<graph_t>::vertex_descriptor;
+        /// The BGL property map type
         using prop_map_t = typename boost::property_map<graph_t, vertex_info_t Vertex::*>::type;
 
         /**

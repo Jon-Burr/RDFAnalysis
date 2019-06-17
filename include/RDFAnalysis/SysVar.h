@@ -14,10 +14,10 @@
  * relevant systematic. Some of the arguments do not change through this process
  * but many do (for example, branch names and string expressions). We call this
  * process of changing arguments for different systematic calls of the same
- * action \a translation.
+ * action a translation.
  *
  * The Node::Act and Node::ActResult functions determine whether or not to
- * translate an argument by using the \ref sysvar_traits struct which in turn
+ * translate an argument by using the sysvar_traits struct which in turn
  * looks for a static constexpr bool member of the correspond argument class
  * type called is_rdf_sysvar. If this is present (and true) the argument will be
  * translated.
@@ -45,7 +45,9 @@ namespace RDFAnalysis {
    */
   template <typename T, typename=void>
     struct sysvar_traits {
+      /// If this is a translatable quantity
       static constexpr bool is_sysvar = false;
+      /// The translated value type
       using value_type = T;
     };
 
@@ -58,7 +60,9 @@ namespace RDFAnalysis {
   template <typename T>
     struct sysvar_traits<T, std::enable_if_t<std::decay_t<T>::is_rdf_sysvar, void>>
     {
+      /// If this is a translatable quantity
       static constexpr bool is_sysvar = true;
+      /// The translated value type
       using value_type = typename std::decay_t<T>::value_type;
     };
 
@@ -92,7 +96,9 @@ namespace RDFAnalysis {
    */
   class SysVarBranch {
     public:
+      /// Make sure this is translated
       static constexpr bool is_rdf_sysvar = true;
+      /// The translated value type
       using value_type = std::string;
 
       /**
@@ -117,7 +123,9 @@ namespace RDFAnalysis {
    */
   class SysVarBranchVector {
     public:
+      /// Make sure this is translated
       static constexpr bool is_rdf_sysvar = true;
+      /// The translated value type
       using value_type = std::vector<std::string>;
 
       /**
@@ -142,12 +150,14 @@ namespace RDFAnalysis {
    */
   class SysVarNewBranch {
     public:
+      /// Make sure this is translated
       static constexpr bool is_rdf_sysvar = true;
+      /// The translated value type
       using value_type = std::string;
 
       /**
        * @brief Create the branch
-       * @param The untranslated branch name
+       * @param branchName The untranslated branch name
        */
       SysVarNewBranch(const std::string& branchName) :
         m_branch(branchName) {}
@@ -167,7 +177,9 @@ namespace RDFAnalysis {
    */
   class SysVarStringExpression {
     public:
+      /// Make sure that this is translated
       static constexpr bool is_rdf_sysvar = true;
+      /// The translated value type
       using value_type = std::string;
 
       /**
@@ -175,7 +187,7 @@ namespace RDFAnalysis {
        * @param expressionTemplate The pseudo-functional form
        * @param columnNames The input variables
        *
-       * \ref expressionTemplate should be returned by the
+       * expressionTemplate should be returned by the
        * IBranchNamer::expandExpression function.
        */
       SysVarStringExpression(

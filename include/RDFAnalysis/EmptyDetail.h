@@ -14,6 +14,7 @@ namespace RDFAnalysis {
    */
   class EmptyDetail {
     public:
+      /// Construct the empty detail: no-op
       EmptyDetail(Node<EmptyDetail>&) {}
   }; //> end class EmptyDetail
 } //> end namespace RDFAnalysis

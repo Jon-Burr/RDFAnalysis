@@ -36,7 +36,7 @@ namespace RDFAnalysis {
         CutflowWriter(const std::string& subDirName="cutflows");
 
         /**
-        * @brief Write cutflows from \ref node to \ref directory.
+        * @brief Write cutflows from node to directory.
         * @param node The node to write.
         * @param directory The directory to write to.
         * @param depth How deep down the node structure we are.

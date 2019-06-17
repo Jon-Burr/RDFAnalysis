@@ -39,7 +39,7 @@ namespace RDFAnalysis {
        * @param branch The base name of the branch
        * @param systName The name of the variation
        *
-       * Search for a variation \ref systName on a branch \ref branch. If one
+       * Search for a variation systName on a branch branch. If one
        * doesn't exist then it will return the nominal branch. If that doesn't
        * exist it will throw a std::out_of_range exception.
        */
@@ -52,9 +52,9 @@ namespace RDFAnalysis {
        * @param branches The base name of the branches
        * @param systName The name of the variation
        *
-       * Search for a variation \ref systName on a branch \ref branch. If one
-       * doesn't exist then it will return the nominal branch. If that doesn't
-       * exist it will throw a std::out_of_range exception.
+       * Search for a variation systName on a branch branch. If one doesn't
+       * exist then it will return the nominal branch. If that doesn't exist it
+       * will throw a std::out_of_range exception.
        */
       virtual std::vector<std::string> nameBranches(
           const std::vector<std::string>& branches,
@@ -66,7 +66,7 @@ namespace RDFAnalysis {
        * @param systName The name of the variation
        * @return The new branch name
        *
-       * Create a new variation \systName of branch \ref branch. If this already
+       * Create a new variation systName of branch branch. If this already
        * exists then a std::runtime_error will be thrown.
        */
       virtual std::string createBranch(
@@ -82,6 +82,7 @@ namespace RDFAnalysis {
           const std::string& branch,
           const std::string& systName = "") const = 0;
 
+      /// Get the name of the nominal variation
       virtual const std::string& nominalName() const = 0;
 
       /**
@@ -142,7 +143,7 @@ namespace RDFAnalysis {
        * @param systematic The systematic variation to use
        * @return The expression for the given systematic
        *
-       * Reinterpret a pseudo-functional form produced by \ref expandExpression
+       * Reinterpret a pseudo-functional form produced by expandExpression
        * for a specific systematic. For an expression '{0} * cos({1})' with
        * inputs {'jet_pt', 'jet_phi'} and systematic 'KIN_A' only affecting
        * jet_pt  (and making hopefully obvious assumptions about the nominal

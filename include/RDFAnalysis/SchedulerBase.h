@@ -9,23 +9,55 @@
 #include <vector>
 
 namespace RDFAnalysis {
+  /**
+   * @brief Base class for the scheduler
+   *
+   * This is the class that does most of the heavy-lifting, being responsible
+   * for figuring out the order of the actions used.
+   */
   class SchedulerBase {
     public:
-      enum ActionType {FILTER, VARIABLE, FILL, INVALID};
+      /// Enum to describe the different types of action
+      enum ActionType {
+        /// A filter imposes a selection on the events it sees and can also
+        /// create a branch in the tree structure
+        FILTER,
+        /// A variable defines a new variable
+        VARIABLE,
+        /// A fill is required to return a SysResultPtr to a TObject
+        FILL,
+        /// Not a valid action, used to construct a placeholder action
+        INVALID
+      };
+      /// Convert an ActionType to a string
       static std::string actionTypeToString(ActionType type);
 
+      /// Helper struct to define a region
       struct RegionDef {
+        /// Ordered list of filters defining the region
         std::vector<std::string> filterList;
+        /// Set of fills to be performed on that region
         std::set<std::string> fills;
+        /// Add a fill to the region
         void addFill(const std::string& fill) {fills.insert(fill); }
       }; //> end struct RegionDef
 
+      /**
+       * @brief Add a region to be scheduled
+       * @param name The name of the region to be added
+       * @param filterList The ordered list of filters to be added.
+       * @exception std::runtime_error An invalid region name is given. Invalid
+       * region names are the empty string '', 'ROOT' or any pre-existing region
+       * or filter name.
+       */
       RegionDef& addRegion(
           const std::string& name,
           const std::vector<std::string>& filterList);
 
+      /// Access the current region definitions
       std::map<std::string, RegionDef>& regionDefs()
       { return m_regionDefs;}
+      /// (const) access the current region definitions
       const std::map<std::string, RegionDef>& regionDefs() const
       { return m_regionDefs;}
 
@@ -43,41 +75,105 @@ namespace RDFAnalysis {
           const std::string& filter,
           const std::vector<std::string>& satisfied);
 
+      /**
+       * @brief Helper struct to represent all the information that the
+       * scheduler needs to know about an action in order to form the ordering.
+       *
+       * An action is uniquely identified by its type and name.
+       * Note that often when passing around actions the cost value is not
+       * filled, as it is only relevant at one point in the schedule building.
+       */
       struct Action {
+        /// Create the action
         Action(ActionType type, const std::string& name, float cost = 0) :
           type(type), name(name), cost(cost) {}
+
+        /// The type of this action
         ActionType type;
+        /// The name of this action
         std::string name;
+        /// The cost-estimate of this action
         float cost;
+
+        /// Operator used to construct sets of actions. Order by type first,
+        /// then name
         bool operator<(const Action& rhs) const {
           return (type == rhs.type ? name < rhs.name : type < rhs.type);
         }
+        /// Equality comparison operator for actions
         bool operator==(const Action& rhs) const {
           return type == rhs.type && name == rhs.name;
         }
+        /// Ordering used in the actual scheduling process. Order by cost first,
+        /// then type, then name.
         struct CostOrdering {
+          /// The actual ordering
           bool operator()(const Action& lhs, const Action& rhs) const
           {
             return (lhs.cost == rhs.cost ? lhs < rhs : lhs.cost < rhs.cost);
           }
         }; //> end struct CostOrdering
+
+        /**
+         * @brief Expand the dependencies of this action
+         * @param scheduler The scheduler instance to use
+         * @param preExisting Any actions that already exist by the point in the
+         * schedule in which this action is to be inserted
+         * @exception std::runtime_error if a circular dependency is found
+         * @return A map of this action and all its direct and indirect
+         * dependencies to their direct dependencies
+         */
         std::map<Action, std::set<Action>, CostOrdering> expand(
             const SchedulerBase& scheduler,
             const std::set<Action>& preExisting = {}) const;
+        /**
+         * @brief Expand the dependencies of this action
+         * @param scheduler The scheduler instance to use
+         * @param preExisting Any actions that already exist by the point in the
+         * schedule in which this action is to be inserted
+         * @param processing A list of the actions currently being processed.
+         * This is used to catch circular dependencies that would otherwise
+         * cause an infinite loop
+         * @exception std::runtime_error if a circular dependency is found
+         * @return A map of this action and all its direct and indirect
+         * dependencies to their direct dependencies
+         */
         std::map<Action, std::set<Action>, CostOrdering> expand(
             const SchedulerBase& scheduler,
             const std::set<Action>& preExisting,
             std::vector<Action>& processing) const;
+
+        /// Get the cost of this action from the scheduler
         void retrieveCost(const SchedulerBase& scheduler);
       }; //> end struct Action
 
+      /**
+       * @brief Helper struct used to build and express the schedule.
+       *
+       * Each node performs one action. When building the raw schedule, each
+       * node is loaded with its dependencies which are then expanded in the
+       * full schedule.
+       */
       struct ScheduleNode {
+        /// Build the node from the action it performs
         ScheduleNode(const Action& action) : action(action) {}
+        /// The action performed by this node
         Action action;
+        /// The dependencies of that action
         std::map<Action, std::set<Action>, Action::CostOrdering> dependencies;
+        /// The children of this node (i.e. the ones that follow it)
         std::vector<ScheduleNode> children;
+        /// The region, if any, that this node defines (i.e. is the final action
+        /// listed for that region)
         std::string region;
 
+        /**
+         * @brief Get the next dependency from this action. This is defined as
+         * the 'smallest' action (using Action::CostOrdering) that has no
+         * remaining dependencies
+         * @exception std::out_of_range If no such dependency exists. This is a
+         * logic error as it should be impossible to occur.
+         */
         const Action& next() const;
 
         /// Remove a dependency from consideration
@@ -149,6 +245,16 @@ namespace RDFAnalysis {
           Action& satisfiedBy,
           bool considerSelf = true) const;
 
+      /**
+       * @brief Look through a list of filters for any that satisfy each other
+       *
+       * Imagine an action that ends up with the dependencies (writing filters
+       * only) {pT > 100, n_B > 1, n_B > 2}. Clearly running both of the n_B
+       * selections is wasteful, and if scale factors are applied as part of
+       * those selections it might well be actively harmful. Given this set of
+       * inputs the return value of this function would be
+       * {n_B > 1 : n_B > 2}
+       */
       std::map<Action, Action> buildReplacementMap(
           const std::set<Action>& filters) const;
 
@@ -184,12 +290,11 @@ namespace RDFAnalysis {
        */
       ScheduleNode rawSchedule() const;
 
+    private:
       void addChildren(
           std::vector<ScheduleNode>&& sources,
           ScheduleNode* target,
           std::set<Action> preExisting) const;
-    private:
-
       /// The region definitions
       std::map<std::string, RegionDef> m_regionDefs;
 

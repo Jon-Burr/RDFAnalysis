@@ -24,7 +24,9 @@
  */
 
 namespace RDFAnalysis {
+  /// Helper typedef
   using RNode = ROOT::RDF::RNode;
+  /// Helper typedef
   using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
 
   /**
@@ -126,7 +128,7 @@ namespace RDFAnalysis {
        * @param model The 'model' object to fill.
        * @param columns The columns to use for the object's Fill method.
        * @param weight The column containing the weight information
-       * @param WeightStrategy strategy The weight strategy to use
+       * @param strategy The weight strategy to use
        *
        * Note that right now this won't work if T doesn't inherit from TH1. TODO
        * fix this! The method also assumes that the weight is always provided as
@@ -277,7 +279,7 @@ namespace RDFAnalysis {
        *
        * Most functions on the Node classes get routed through this or one of
        * its overloads. It carries out the following operations:
-       *   -# Use \ref columns to determine which systematics affect this action
+       *   -# Use columns to determine which systematics affect this action
        *   -# Apply the action to each underlying systematic-specific RNode,
        *      even those not in the list found in the previous step
        *   -# For each remaining systematic from step 1 apply the action to the
@@ -286,7 +288,7 @@ namespace RDFAnalysis {
        * can be translated are. For information on argument translation see
        * SysVar.h
        *
-       * This overload is selected when \ref f is a member function of
+       * This overload is selected when f is a member function of
        * ROOT::RNode. In this case is usually necessary to specify T and TrArgs
        * in the call.
        */
@@ -417,7 +419,8 @@ namespace RDFAnalysis {
     protected:
       /// Helper struct that forces the initialisation of the branch namer.
       struct NamerInitialiser {
-        NamerInitialiser() {} // no-op
+        NamerInitialiser() {} //> no-op
+        /// Initialise the name as part of the node's initialisation list
         NamerInitialiser(
             IBranchNamer& namer,
             const std::map<std::string, ROOT::RDF::RNode>& rnodes) {
@@ -445,6 +448,7 @@ namespace RDFAnalysis {
        * @tparam F The functor type
        * @param f The functor
        * @param columns The input variables to the functor
+       * @param cutflowName The cutflow name of these nodes
        */
       template <typename F>
         enable_ifn_string_t<F, std::map<std::string, RNode>> makeChildRNodes(
@@ -455,6 +459,7 @@ namespace RDFAnalysis {
       /**
        * @brief Create child RNodes to be used for a filter from this node
        * @param expression The expression to describe the filter
+       * @param cutflowName The cutflow name of these nodes
        */
       std::map<std::string, RNode> makeChildRNodes(
           const std::string& expression,
@@ -464,6 +469,7 @@ namespace RDFAnalysis {
        * @brief Create child RNodes to be used for a filter from this node
        * @param expression The expression to describe the filter
        * @param columns The input variables to the expression
+       * @param cutflowName The cutflow name of these nodes
        *
        * The expression should have the column names replaced by placeholders
        * like {idx} (where idx is the index of the branch in the columns
@@ -557,7 +563,7 @@ namespace RDFAnalysis {
        * @brief Set the weight on this node
        * @tparam F the functor type
        * @param f The functor
-       * @param columns The input columns to \ref f (if any)
+       * @param columns The input columns to f (if any)
        * @param parent The parent (if any) of this node
        * @param strategy The weighting strategy to apply
        * @return The name of the new weight

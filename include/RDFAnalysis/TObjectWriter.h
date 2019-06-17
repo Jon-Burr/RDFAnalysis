@@ -33,10 +33,9 @@ namespace RDFAnalysis {
         TObjectWriter(const std::string& subDirName="plots");
 
         /**
-        * @brief Write the contents of \ref node to \ref directory.
+        * @brief Write the contents of node to directory.
         * @param node The node to write
         * @param directory The directory to write
-        * @param depth How deep down the node structure we are.
         */
         void write(
             Node<Detail>& node,
@@ -47,7 +46,6 @@ namespace RDFAnalysis {
          * @brief Write the contents of a region to a directory.
          * @param region The region to write
          * @param directory The directory to write to
-         * @param depth How deep down the node structure we are.
          */
         void write(
             typename Scheduler<Detail>::Region& region,

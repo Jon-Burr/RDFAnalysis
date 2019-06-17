@@ -30,7 +30,7 @@ namespace RDFAnalysis {
         /**
          * @brief Constructor
          * @tparam U The concrete type of the RResultPtr
-         * @param The RResultPtr
+         * @param ptr The RResultPtr
          */
         template <typename U, 
                  typename = std::enable_if_t<std::is_base_of<T, U>{} || std::is_same<T, U>{}, void>>
@@ -41,7 +41,7 @@ namespace RDFAnalysis {
         /**
          * @brief Copy constructor
          * @tparam U The held type of the other object
-         * @param The object to copy.
+         * @param other The object to copy.
          */
         template <typename U,
                  typename = std::enable_if_t<
@@ -52,7 +52,7 @@ namespace RDFAnalysis {
         /**
          * @brief Move constructor
          * @tparam U The held type of the other object
-         * @param The object to move.
+         * @param other The object to move.
          */
         template <typename U,
                  typename = std::enable_if_t<

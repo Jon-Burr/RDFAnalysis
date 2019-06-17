@@ -47,9 +47,9 @@ namespace RDFAnalysis {
        * @param branch The base name of the branch
        * @param systName The name of the variation
        *
-       * Search for a variation \ref systName on a branch \ref branch. If one
-       * doesn't exist then it will return the nominal branch. If that doesn't
-       * exist it will throw a std::out_of_range exception.
+       * Search for a variation systName on a branch branch. If one doesn't
+       * exist then it will return the nominal branch. If that doesn't exist it
+       * will throw a std::out_of_range exception.
        */
       std::string nameBranch(
           const std::string& branch,
@@ -60,7 +60,7 @@ namespace RDFAnalysis {
        * @param branch The base name of the branch
        * @param systName The name of the variation
        *
-       * Create a new variation \systName of branch \ref branch. If this already
+       * Create a new variation systName of branch branch. If this already
        * exists then a std::runtime_error will be thrown.
        */
       std::string createBranch(
@@ -85,6 +85,7 @@ namespace RDFAnalysis {
           const std::string& branch,
           const std::string& systName = "") const;
 
+      /// Print the name of the nominal variation
       const std::string& nominalName() const override { return m_nominalName; }
 
       /**

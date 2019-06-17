@@ -21,6 +21,7 @@ namespace RDFAnalysis {
   template <typename Iterator>
     class range_t {
       public:
+        /// The templated iterator type
         using itr_t = Iterator;
         /// Construct the range from two iterators
         range_t(Iterator begin, Iterator end) :
@@ -38,7 +39,7 @@ namespace RDFAnalysis {
         const Iterator m_end;
     };
 
-  /// Make a \ref range_t from a container
+  /// Make a range_t from a container
   template <typename Container>
     auto as_range(Container& container) {
       return range_t<std::decay_t<decltype(container.begin() )>>(
@@ -46,7 +47,7 @@ namespace RDFAnalysis {
           std::end(container) );
     }
 
-  /// Make a \ref range_t from a const container
+  /// Make a range_t from a const container
   template <typename Container>
     auto as_range(const Container& container) {
       return range_t<std::decay_t<decltype(container.begin() )>>(
@@ -86,8 +87,8 @@ namespace RDFAnalysis {
    * @param key The key to search for
    * @param defaultKey The fallback key
    *
-   * Try and return the item keyed by \ref key from \ref theMap. If it isn't
-   * there, return the item keyed by \ref defaultKey instead.
+   * Try and return the item keyed by key from theMap. If it isn't there, return
+   * the item keyed by defaultKey instead.
    */
   template <typename Map>
     typename Map::mapped_type getDefaultKey(
@@ -112,17 +113,17 @@ namespace RDFAnalysis {
   template <typename F, typename T>
     using enable_ifn_string_t = std::enable_if_t<!std::is_convertible<F, std::string>{}, T>;
 
-  /// Apply is C++17... 
-  template <typename F, typename... Ts, std::size_t... Is>
-    constexpr decltype(auto) apply_impl(F&& f, std::tuple<Ts...>&& args, std::index_sequence<Is...>)
-    {
-      return f(std::get<Is>(args)...);
-    }
-  template <typename F, typename...Ts>
-    constexpr decltype(auto) apply(F&& f, std::tuple<Ts...>&& args)
-    {
-      return apply_impl(std::forward<F&&>(f), std::forward<std::tuple<Ts...>&&>(args), std::make_index_sequence<sizeof...(Ts)>());
-    }
+  /* /// Apply is C++17... */ 
+  /* template <typename F, typename... Ts, std::size_t... Is> */
+  /*   constexpr decltype(auto) apply_impl(F&& f, std::tuple<Ts...>&& args, std::index_sequence<Is...>) */
+  /*   { */
+  /*     return f(std::get<Is>(args)...); */
+  /*   } */
+  /* template <typename F, typename...Ts> */
+  /*   constexpr decltype(auto) apply(F&& f, std::tuple<Ts...>&& args) */
+  /*   { */
+  /*     return apply_impl(std::forward<F&&>(f), std::forward<std::tuple<Ts...>&&>(args), std::make_index_sequence<sizeof...(Ts)>()); */
+  /*   } */
 
   /// Could perhaps be more natural in the IBranchNamer?
   std::string uniqueBranchName(const std::string& stub = "GenBranch");

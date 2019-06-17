@@ -58,7 +58,6 @@ namespace RDFAnalysis {
       /**
        * @brief Test if a specific variation of a specific branch exists
        * @param branch The base name of the branch
-       * @param systName The name of the variation
        */
       bool exists(
           const std::string& branch,
@@ -75,7 +74,6 @@ namespace RDFAnalysis {
 
       /**
        * @brief Get all systematics affecting a base branch name.
-       * @param branch The name of the branch to test
        */
       std::set<std::string> systematicsAffecting(
           const std::string& = "") const override

@@ -21,13 +21,12 @@ namespace RDFAnalysis {
    * For the purposes of this package an analysis is modeled as a tree
    * structure, each selection forming a new node in the tree. Multiple
    * selections can be defined from a single node, forming a branch in the tree
-   * at that point. Each node can have attached TObjects (created using the \ref
-   * Fill function and accessed using the \ref NodeBase::objects function) as
-   * well as additional objects that can be accessed using the \ref details
-   * function.
+   * at that point. Each node can have attached TObjects (created using the Fill
+   * function and accessed using the NodeBase::objects function) as well as
+   * additional objects that can be accessed using the details function.
    *
-   * The tree structure can be navigated through using the \ref parent and \ref
-   * children functions.
+   * The tree structure can be navigated through using the parent and children
+   * functions.
    */
   template <typename Detail>
   class Node : public NodeBase
@@ -232,6 +231,7 @@ namespace RDFAnalysis {
 
       /// Get the parent of this node
       Node* parent() { return m_parent; }
+      /// (const) get the parent of this node
       const Node* parent() const { return m_parent; }
 
       /// Is the node the root?
@@ -241,9 +241,11 @@ namespace RDFAnalysis {
        * @brief Create the root node of the tree
        * @param rnode The RDataFrame that forms the base of the tree
        * @param namer The branch namer
+       * @param isMC Whether or not MC mode (weighting) should be used
        * @param name The name of the root node
        * @param cutflowName How the root node appears in the cutflow
        * @param weight Expression to calculate a weight.
+       * @param strategy The weight strategy
        */
       static std::unique_ptr<Node> createROOT(
           const RNode& rnode,

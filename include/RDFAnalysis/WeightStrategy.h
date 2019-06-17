@@ -5,7 +5,7 @@
 
 /**
  * @file WeightStrategy.h
- * @brief File containing the \ref WeightStrategy enum class
+ * @brief File containing the WeightStrategy enum class
  */
 
 namespace RDFAnalysis {

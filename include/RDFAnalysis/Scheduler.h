@@ -32,6 +32,10 @@ namespace RDFAnalysis {
         /// The IAuditor type
         using auditor_t = IAuditor<Detail>;
 
+        /**
+         * @brief Create the scheduler from a node
+         * @param root The root node to attach everything else to.
+         */
         Scheduler(node_t* root) : m_root(root), m_namer(root->namer() ) {}
 
         /// Get the root node. After schedule has been called this will contain
@@ -70,17 +74,28 @@ namespace RDFAnalysis {
         const std::map<std::string, Region>& regions() const
         { return m_regions; }
 
+        /// Add a new auditor
         void addAuditor(std::shared_ptr<auditor_t> auditor)
         { m_auditors.push_back(auditor); }
 
+        /**
+         * @brief Add a new auditor
+         * @tparam A The auditor template type
+         * @tparam Args The constructor argument types
+         * @param args The constructor arguments
+         *
+         * This version uses the correct detail type to specialise the template
+         */
         template <template <typename> class A, typename... Args>
           void addAuditor(Args&&... args)
           { m_auditors.push_back(std::make_shared<A<Detail>>(
                 std::forward<Args>(args)...) ); }
 
+        /// Get the auditors
         std::vector<std::shared_ptr<auditor_t>>& auditors()
         { return m_auditors; }
 
+        /// (const) get the auditors
         const std::vector<std::shared_ptr<auditor_t>>& auditors() const
         { return m_auditors; }
 
@@ -99,6 +114,15 @@ namespace RDFAnalysis {
             const std::set<std::string>& filters = {},
             float cost = 0);
 
+        /**
+         * @brief Register a new variable definition
+         * @tparam F The functor type
+         * @param name The name of the column to define
+         * @param f The functor
+         * @param columns The input variables (if any) to the functor
+         * @param filters Any filters that this depends on
+         * @param cost A cost estimate for this action
+         */
         template <typename F>
           enable_ifn_string_t<F, void> registerVariable(
               const std::string& name, 
@@ -107,12 +131,27 @@ namespace RDFAnalysis {
               const std::set<std::string>& filters = {},
               float cost = 0);
 
+        /**
+         * @brief Register a new variable definition
+         * @param name The name of the column to define
+         * @param expression The string expression to interpret
+         * @param filters Any filters that this depends on
+         * @param cost A cost estimate for this action
+         */
         void registerVariable(
             const std::string& name,
             const std::string& expression,
             const std::set<std::string>& filters = {},
             float cost = 0);
 
+        /**
+         * @brief Register a new variable definition
+         * @param name The name of the column to define
+         * @param expression The string expression to interpret
+         * @param columns The input variables (if any) to the functor
+         * @param filters Any filters that this depends on
+         * @param cost A cost estimate for this action
+         */
         void registerVariable(
             const std::string& name,
             const std::string& expression,
@@ -138,6 +177,16 @@ namespace RDFAnalysis {
               const std::set<std::string>& filters = {},
               float cost = 0);
 
+        /**
+         * @brief Register a single action that defines multiple new variables
+         * @tparam F The functor type
+         * @tparam N The number of defined arguments
+         * @param names The names of the defined variables
+         * @param f The functor
+         * @param columns  The inputs to the functor
+         * @param filters The filters that this depends on
+         * @param cost The estimate cost of this action
+         */
         template <std::size_t N, typename F>
           enable_ifn_string_t<F, void> registerVariables(
               const std::array<std::string, N>& names,
@@ -302,7 +351,7 @@ namespace RDFAnalysis {
        * @param model The 'model' object to fill.
        * @param columns The columns to use for the object's Fill method.
        * @param weight The column containing the weight information
-       * @param WeightStrategy strategy The weight strategy to use
+       * @param strategy The weight strategy to use
        * @param filters The filters that this depends on
        *
        * Note that right now this won't work if T doesn't inherit from TH1. TODO
@@ -330,6 +379,7 @@ namespace RDFAnalysis {
         /// After scheduling, pointers to the end nodes for all defined regions
         /// will be here
         std::map<std::string, Region> m_regions;
+        /// The auditors to apply
         std::vector<std::shared_ptr<auditor_t>> m_auditors;
         /// Copy information across from the Schedule node to the actual node
         void addNode(const ScheduleNode& source, 

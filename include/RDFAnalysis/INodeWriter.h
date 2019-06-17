@@ -30,7 +30,7 @@ namespace RDFAnalysis {
         virtual ~INodeWriter() {}
 
         /**
-        * @brief Write the contents of \ref node to \ref directory.
+        * @brief Write the contents of node to directory.
         * @param node The node to write
         * @param directory The directory to write
         * @param depth How deep down the node structure we are.
