@@ -1,0 +1,53 @@
+#ifndef RDFAnalysis_Utils_BoostGraphBuilder_ICC
+#define RDFAnalysis_Utils_BoostGraphBuilder_ICC
+
+namespace RDFAnalysis { namespace detail {
+  template <typename InputNode, typename VertexInfo, typename ChildItr>
+    BoostGraphBuilder<InputNode, VertexInfo, ChildItr>::BoostGraphBuilder(
+        std::function<ChildItr(InputNode)> childBegin,
+        std::function<ChildItr(InputNode)> childEnd) :
+      m_childBegin(childBegin),
+      m_childEnd(childEnd) {}
+
+  template <typename InputNode, typename VertexInfo, typename ChildItr>
+    BoostGraphBuilder<InputNode, VertexInfo, ChildItr>::~BoostGraphBuilder() {}
+
+  template <typename InputNode, typename VertexInfo, typename ChildItr>
+    typename BoostGraphBuilder<InputNode, VertexInfo, ChildItr>::NodeDecision BoostGraphBuilder<InputNode, VertexInfo, ChildItr>::processNode(InputNode)
+    {
+      return NodeDecision::Write;
+    }
+
+  template <typename InputNode, typename VertexInfo, typename ChildItr>
+    typename BoostGraphBuilder<InputNode, VertexInfo, ChildItr>::graph_t BoostGraphBuilder<InputNode, VertexInfo, ChildItr>::buildGraph(InputNode root)
+    {
+      graph_t graph;
+      vert_desc_t v = boost::add_vertex(info(root), graph);
+      for (ChildItr itr = m_childBegin(root); itr != m_childEnd(root); ++itr)
+        addToGraph(*itr, v, graph);
+      return graph;
+    }
+
+  template <typename InputNode, typename VertexInfo, typename ChildItr>
+    void BoostGraphBuilder<InputNode, VertexInfo, ChildItr>::addToGraph(
+        InputNode input,
+        const vert_desc_t& parent,
+        graph_t& graph)
+    {
+      vert_desc_t v = parent;
+      switch (processNode(input) ) {
+        case NodeDecision::Write:
+          v = boost::add_vertex(info(input), graph);
+          boost::add_edge(parent, v, graph);
+          // Intentional fall through
+        case NodeDecision::Skip:
+          for (ChildItr itr = m_childBegin(input); itr != m_childEnd(input); ++itr)
+            addToGraph(*itr, v, graph);
+          break;
+        case NodeDecision::Terminate:
+          break;
+      }
+    }
+} } //> end namespace RDFAnalysis::detail
+
+#endif //> !RDFAnalysis_Utils_BoostGraphBuilder_ICC

@@ -1,41 +1,66 @@
 #include "RDFAnalysis/SchedulerBase.h"
 #include <algorithm>
+#include "RDFAnalysis/Utils/BoostGraphBuilder.h"
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
 #include <iostream>
 
 namespace {
+
+
   using vertex_t = std::pair<RDFAnalysis::SchedulerBase::ActionType, std::string>;
-  struct BGLVertex {
-    BGLVertex() {}
-    BGLVertex(const RDFAnalysis::SchedulerBase::Action& action) :
-      action(action.type, action.name) {}
-    vertex_t action;
-  };
-  using graph_t = boost::adjacency_list<
-    boost::vecS, boost::vecS, boost::directedS, BGLVertex>;
-  using vert_desc_t = boost::graph_traits<graph_t>::vertex_descriptor;
-  using prop_map_t = typename boost::property_map<graph_t, vertex_t BGLVertex::*>::type;
-
-  void addToGraph(
-      const RDFAnalysis::SchedulerBase::ScheduleNode& node,
-      const vert_desc_t& parent,
-      graph_t& graph)
+  class ActionGraphBuilder : public RDFAnalysis::detail::BoostGraphBuilder<
+                              const RDFAnalysis::SchedulerBase::ScheduleNode&,
+                              vertex_t>
   {
-    vert_desc_t v = boost::add_vertex(node.action, graph);
-    boost::add_edge(parent, v, graph);
-    for (const auto& child : node.children)
-      addToGraph(child, v, graph);
-  }
+    public:
+      using base_t = RDFAnalysis::detail::BoostGraphBuilder<
+        const RDFAnalysis::SchedulerBase::ScheduleNode&,
+        vertex_t>;
+      using input_node_t = typename base_t::input_node_t;
+      using vertex_info_t = typename base_t::vertex_info_t;
+      using graph_t = typename base_t::graph_t;
+      using prop_map_t = typename base_t::prop_map_t;
+      using vertex_t = typename base_t::Vertex;
+      ActionGraphBuilder() :
+        base_t([] (input_node_t input) { return input.children.begin(); },
+              [] (input_node_t input) { return input.children.end(); }) {}
 
-  graph_t buildGraph(const RDFAnalysis::SchedulerBase::ScheduleNode& root)
-  {
-    graph_t graph;
-    vert_desc_t v = boost::add_vertex(root.action, graph);
-    for (const auto& child : root.children)
-      addToGraph(child, v, graph);
-    return graph;
-  }
+    private:
+      vertex_info_t info(input_node_t input)
+      {
+        return std::make_pair(input.action.type, input.action.name);
+      }
+  }; //> end class ActionGraphBuilder
+  /* struct BGLVertex { */
+  /*   BGLVertex() {} */
+  /*   BGLVertex(const RDFAnalysis::SchedulerBase::Action& action) : */
+  /*     action(action.type, action.name) {} */
+  /*   vertex_t action; */
+  /* }; */
+  /* using graph_t = boost::adjacency_list< */
+  /*   boost::vecS, boost::vecS, boost::directedS, BGLVertex>; */
+  /* using vert_desc_t = boost::graph_traits<graph_t>::vertex_descriptor; */
+  using prop_map_t = ActionGraphBuilder::prop_map_t;
+      /* void addToGraph( */
+  /*     const RDFAnalysis::SchedulerBase::ScheduleNode& node, */
+  /*     const vert_desc_t& parent, */
+  /*     graph_t& graph) */
+  /* { */
+  /*   vert_desc_t v = boost::add_vertex(node.action, graph); */
+  /*   boost::add_edge(parent, v, graph); */
+  /*   for (const auto& child : node.children) */
+  /*     addToGraph(child, v, graph); */
+  /* } */
+
+  /* graph_t buildGraph(const RDFAnalysis::SchedulerBase::ScheduleNode& root) */
+  /* { */
+  /*   graph_t graph; */
+  /*   vert_desc_t v = boost::add_vertex(root.action, graph); */
+  /*   for (const auto& child : root.children) */
+  /*     addToGraph(child, v, graph); */
+  /*   return graph; */
+  /* } */
 
   class ActionWriter {
     public:
@@ -72,7 +97,7 @@ namespace RDFAnalysis {
       case FILL:
         return "Fill";
       default:
-        return "UNKNOWN";
+        return "INVALID";
     }
   }
 
@@ -149,22 +174,53 @@ namespace RDFAnalysis {
     std::map<Action, std::set<Action>, CostOrdering> output;
     // Make sure that there is an entry for this, even if it doesn't have any
     // dependencies
-    output[thisCopy];
+    std::set<Action>& thisDependencies = output[thisCopy];
     // Add this to the processing list
     processing.push_back(thisCopy);
+    // We need to keep track of the filters that we define. Specifically we need
+    // to remove any redundancies (i.e. including two filters where one is
+    // strictly looser than an other).
+    // For example, consider the case of trying to reconstruct a H->bb
+    // candidate. For this we need to reconstruct both b-jets and then add them
+    // together. In order to reconstruct the leading b-jet we need to ensure
+    // that n_B >= 1, for the subleading we need n_B >= 2. Clearly the latter
+    // requirement satisfies the former so we should replace n_B >= 1 everywhere
+    // with n_B >= 2
+    // For this, we need to look through all filters that are dependencies
+    // To save time, build this list up now
+    std::set<Action> filters;
     // Read the dependencies from the scheduler
     for (const Action& dep : scheduler.getDependencies(thisCopy) ) {
       // Skip any dependency that is already satisfied
       if (scheduler.isActionSatisfiedBy(dep, preExisting) )
         continue;
+      if (dep.type == FILTER)
+        filters.insert(dep);
+      // Add this to our dependencies
+      thisDependencies.insert(dep);
       // Expand this dependency
       std::map<Action, std::set<Action>, CostOrdering> expanded = dep.expand(
           scheduler, preExisting, processing);
-      // Add these to both the output and our dependencies
+      // Add these to the output
       output.insert(expanded.begin(), expanded.end() );
-      for (const auto& dep : expanded) {
-        output[thisCopy].insert(dep.first);
-        output[thisCopy].insert(dep.second.begin(), dep.second.end() );
+      for (const auto& p : expanded)
+        if (p.first.type == FILTER)
+          filters.insert(p.first);
+    }
+    std::map<Action, Action> replacementMap = scheduler.buildReplacementMap(filters);
+    // Replace all indirect dependencies of anything using this map
+    for (const auto& repPair : replacementMap) {
+      auto outItr = output.begin();
+      while (outItr != output.end() ) {
+        if (outItr->first == repPair.first)
+          // Remove direct dependency
+          outItr = output.erase(outItr);
+        else {
+          if (outItr->second.erase(repPair.first) )
+            // Replace indirect dependency
+            outItr->second.insert(repPair.second);
+          ++outItr;
+        }
       }
     }
     processing.pop_back();
@@ -201,17 +257,20 @@ namespace RDFAnalysis {
   {
     auto directItr = dependencies.begin();
     while (directItr != dependencies.end() ) {
-      if (scheduler.isActionSatisfiedBy(directItr->first, {action}) )
+      if (scheduler.isActionSatisfiedBy(directItr->first, {action}) ) {
         // remove the action as a direct dependency
         directItr = dependencies.erase(directItr);
+      }
       else {
         auto indirectItr = directItr->second.begin();
         while (indirectItr != directItr->second.end() ) {
-          if (scheduler.isActionSatisfiedBy(*indirectItr, {action}) )
+          if (scheduler.isActionSatisfiedBy(*indirectItr, {action}) ) {
             // remove the action as an indirect dependency
             indirectItr = directItr->second.erase(indirectItr);
-          else
+          }
+          else {
             ++indirectItr;
+          }
         }
         ++directItr;
       }
@@ -263,19 +322,22 @@ namespace RDFAnalysis {
 
   bool SchedulerBase::isActionSatisfiedBy(
       const Action& action,
-      const std::set<Action>& candidates) const
+      const std::set<Action>& candidates,
+      bool considerSelf) const
   {
-    std::string satisfiedBy;
-    return isActionSatisfiedBy(action, candidates, satisfiedBy);
+    Action satisfiedBy(INVALID, "");
+    return isActionSatisfiedBy(
+        action, candidates, satisfiedBy, considerSelf);
   }
 
   bool SchedulerBase::isActionSatisfiedBy(
       const Action& action,
       const std::set<Action>& candidates,
-      std::string& satisfiedBy) const
+      Action& satisfiedBy,
+      bool considerSelf) const
   {
-    if (candidates.count(action) ) {
-      satisfiedBy = action.name;
+    if (considerSelf && candidates.count(action) ) {
+      satisfiedBy = action;
       return true;
     }
     auto itr = m_satisfiedBy.find(action);
@@ -288,11 +350,29 @@ namespace RDFAnalysis {
         itr->second.begin(), itr->second.end(),
         std::back_inserter(isSatisfiedBy) );
     if (isSatisfiedBy.size() > 0) {
-      satisfiedBy = isSatisfiedBy.begin()->name;
+      satisfiedBy = *isSatisfiedBy.begin();
       return true;
     }
     else
       return false;
+  }
+
+  std::map<SchedulerBase::Action, SchedulerBase::Action> SchedulerBase::buildReplacementMap(
+      const std::set<Action>& filters) const
+  {
+    std::map<Action, Action> replacementMap;
+    for (const Action& action : filters) {
+      Action satisfiedBy = action;
+      if (isActionSatisfiedBy(action, filters, satisfiedBy, false) ) {
+        replacementMap.insert(std::make_pair(action, satisfiedBy) );
+        for (auto& repPair : replacementMap)
+          // We also need to update everything that was originally replacing
+          // *to* action
+          if (repPair.second == action)
+            repPair.second = satisfiedBy;
+      }
+    }
+    return replacementMap;
   }
 
   void SchedulerBase::actionDefinesMultipleVariables(
@@ -304,12 +384,17 @@ namespace RDFAnalysis {
     }
   }
 
-  SchedulerBase::ScheduleNode SchedulerBase::schedule(
-      const IBranchNamer& namer) const
+  SchedulerBase::ScheduleNode& SchedulerBase::schedule(
+      const IBranchNamer& namer)
   {
+    // TODO - resolve 'satisfaction relations'. i.e. if A satisfies B and B
+    // satisfies C then A should satisfy C. This is only necessary for filters
+    {
+      std::set<Action> processed;
+      expandSatisfiesRelations(m_satisfiedBy.begin(), processed);
+    }
+    // Get the raw schedule
     ScheduleNode rawRoot = rawSchedule();
-    // Prepare the output
-    ScheduleNode root({FILTER, "ROOT"});
     // What pre-existing dependencies are there (i.e. variables in the input
     // namer).
     std::set<Action> preExisting;
@@ -319,8 +404,8 @@ namespace RDFAnalysis {
     // Expand all of the children of the raw root node
     for (ScheduleNode& child : rawRoot.children)
       child.expand(*this, preExisting);
-    addChildren(std::move(rawRoot.children), &root, preExisting);
-    return root;
+    addChildren(std::move(rawRoot.children), &m_schedule, preExisting);
+    return m_schedule;
   }
 
   SchedulerBase::ScheduleNode SchedulerBase::rawSchedule() const
@@ -392,32 +477,33 @@ namespace RDFAnalysis {
     // If any of the sources actions are in the preExisting set then this is an
     // inconsistent set up (the filter order won't be what the user wanted).
     for (const ScheduleNode& source : sources) {
-      std::string name;
+      Action satisfiedBy(INVALID, "");
       if (source.action.type == FILTER &&
-          isActionSatisfiedBy(source.action, preExisting, name) ) {
+          isActionSatisfiedBy(source.action, preExisting, satisfiedBy) ) {
         std::string err = "Filter '" + source.action.name;
-        if (name == source.action.name)
+        if (satisfiedBy == source.action)
           err += "' already exists in the schedule!";
         else
-          err += "' was already satisfied by '" + name + "'!";
+          err += "' was already satisfied by '" + satisfiedBy.name + "'!";
         err += " This was probably added as a dependency.";
         throw std::runtime_error(err);
       }
     }
-    // Note - this assumes that the last thing in each source is a filter. This
-    // is true so long as the rawSchedule function doesn't change
+    // Note - this assumes that the last thing in each source is a filter or
+    // fill. This is true so long as the rawSchedule function doesn't change
     ScheduleNode* current = target;
     while (true) {
       auto itr = sources.begin();
       // if any of the sources are trying to add a variable then add it
       for (; itr != sources.end(); ++itr) {
-        const Action& toAdd = itr->next();
+        Action toAdd = itr->next();
         if (toAdd.type == VARIABLE) {
           current->children.emplace_back(toAdd);
           current = &current->children.back();
           preExisting.insert(toAdd);
-          for (ScheduleNode& source : sources)
+          for (ScheduleNode& source : sources) {
             source.removeDependency(toAdd, *this);
+          }
           break;
         }
       }
@@ -426,7 +512,7 @@ namespace RDFAnalysis {
         break;
     }
     // When we've reached this point it's guaranteed that every source is trying
-    // to add a filter next.
+    // to add a filter/fill next.
     // The next step is to group them by the filter they're trying to add
     std::map<Action, std::vector<ScheduleNode>> grouped;
     for (ScheduleNode& node : sources)
@@ -472,8 +558,33 @@ namespace RDFAnalysis {
       std::ostream& os, const ScheduleNode& root)
   {
     // Have to build the BGL representation
-    graph_t graph = buildGraph(root);
-    prop_map_t propMap =  boost::get(&BGLVertex::action, graph);
+    /* graph_t graph = buildGraph(root); */
+    auto graph = ActionGraphBuilder().buildGraph(root);
+    prop_map_t propMap =  boost::get(&ActionGraphBuilder::vertex_t::info, graph);
     boost::write_graphviz(os, graph, ActionWriter(propMap) );
+  }
+
+  void SchedulerBase::expandSatisfiesRelations(
+      std::map<Action, std::set<Action>>::iterator currentItr,
+      std::set<Action>& processed)
+  {
+    if (currentItr == m_satisfiedBy.end() )
+      return;
+    if (!processed.count(currentItr->first) && currentItr->first.type == FILTER) {
+      processed.insert(currentItr->first);
+      // Make a copy of the original set so we can modify the real one.
+      std::set<Action> toExpand = currentItr->second;
+      for (const Action& action : toExpand) {
+        auto nextItr = m_satisfiedBy.find(action);
+        if (nextItr != m_satisfiedBy.end() ) {
+          // Expand *that* action
+          expandSatisfiesRelations(nextItr, processed);
+          // Then add everything that satisfies that action to the list of
+          // everything that affects us
+          currentItr->second.insert(nextItr->second.begin(), nextItr->second.end() );
+        }
+      }
+    }
+    return expandSatisfiesRelations(++currentItr, processed);
   }
 } //> end namespace RDFAnalysis

@@ -21,11 +21,13 @@ namespace RDFAnalysis {
 
   template <typename Detail>
     void OutputWriter<Detail>::write(
-        const std::map<std::string, Node<Detail>*>& regions)
+        std::map<std::string, typename Scheduler<Detail>::Region>& regions)
     {
-      for (const auto& regionPair : regions) {
+      for (auto& regionPair : regions) {
         TDirectory* newDirectory = getMkdir(m_directory.get(), regionPair.first);
-        writeNode(*regionPair.second, newDirectory, /* depth = */0);
+        newDirectory->cd();
+        for (std::shared_ptr<INodeWriter<Detail>>& writer : m_writers)
+          writer->write(regionPair.second, newDirectory, /*depth = */0);
       }
     }
 

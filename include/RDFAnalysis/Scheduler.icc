@@ -7,11 +7,13 @@
 
 namespace RDFAnalysis {
   template <typename Detail>
-    SchedulerBase::ScheduleNode Scheduler<Detail>::schedule(
+    SchedulerBase::ScheduleNode& Scheduler<Detail>::schedule(
         const std::string& graphFile)
     {
       // Get the schedule from the base class
-      ScheduleNode rsn = SchedulerBase::schedule(root()->namer() );
+      ScheduleNode& rsn = SchedulerBase::schedule(root()->namer() );
+      for (std::shared_ptr<auditor_t>& auditor : m_auditors)
+        auditor->auditSchedule(rsn);
       if (!graphFile.empty() ) {
         std::ofstream of(graphFile);
         printSchedule(of, rsn);
@@ -250,7 +252,7 @@ namespace RDFAnalysis {
   template <typename Detail>
     void Scheduler<Detail>::registerFillImpl(
         const std::string& name,
-        std::function<void(node_t*)> action,
+        std::function<SysResultPtr<TObject>(node_t*)> action,
         const std::set<std::string>& variables,
         const std::set<std::string>& filters)
     {
@@ -276,7 +278,7 @@ namespace RDFAnalysis {
     {
       registerFillImpl(
           model.GetName(),
-          [model, columns, weight, strategy] (node_t* node)
+          [model, columns, weight, strategy] (node_t* node) -> SysResultPtr<TObject>
           { return node->Fill(model, columns, weight, strategy); },
           {columns.begin(), columns.end()},
           filters);
@@ -285,8 +287,11 @@ namespace RDFAnalysis {
   template <typename Detail>
     void Scheduler<Detail>::addNode(
         const ScheduleNode& source,
-        node_t* target)
+        node_t* target,
+        const std::string& currentRegion)
     {
+      for (std::shared_ptr<auditor_t>& auditor : m_auditors)
+        auditor->preAuditNode(source, target, currentRegion);
       if (source.action.name != "ROOT") {
         // Don't copy anything across from ROOT
         switch(source.action.type) {
@@ -297,15 +302,21 @@ namespace RDFAnalysis {
             m_variables.at(source.action.name)(target);
             break;
           case FILL:
-            m_fills.at(source.action.name)(target);
+            m_regions[currentRegion].objects.push_back(
+                m_fills.at(source.action.name)(target) );
             break;
+          default:
+            throw std::runtime_error("Invalid action scheduled!!");
         }
       }
+      for (std::shared_ptr<auditor_t>& auditor : m_auditors)
+        auditor->postAuditNode(source, target, currentRegion);
       // Does this node define a region?
       if (!source.region.empty() )
-        m_regions[source.region] = target;
+        m_regions[source.region].node = target;
       for (const ScheduleNode& child : source.children)
-        addNode(child, target);
+        addNode(child, target, 
+                source.region.empty() ? currentRegion : source.region);
     }
 } //> end namespace RDFAnalysis
 

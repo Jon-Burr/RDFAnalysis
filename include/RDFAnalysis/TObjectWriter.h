@@ -43,6 +43,17 @@ namespace RDFAnalysis {
             TDirectory* directory,
             std::size_t /* depth */) override;
 
+        /**
+         * @brief Write the contents of a region to a directory.
+         * @param region The region to write
+         * @param directory The directory to write to
+         * @param depth How deep down the node structure we are.
+         */
+        void write(
+            typename Scheduler<Detail>::Region& region,
+            TDirectory* directory,
+            std::size_t /* depth */) override;
+
       private:
         /// The subdirectory name
         std::string m_subDirName;

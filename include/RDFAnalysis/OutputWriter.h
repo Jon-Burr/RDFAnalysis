@@ -55,14 +55,14 @@ namespace RDFAnalysis {
          * @brief Write information from the regions defined by a scheduler.
          * @param scheduler The scheduler to read from
          */
-        void write(const Scheduler<Detail>& scheduler)
+        void write(Scheduler<Detail>& scheduler)
         { write(scheduler.regions() ); }
 
         /**
          * @brief Write information from list of named nodes
          * @param regions Mapping of output directory names to nodes
          */
-        void write(const std::map<std::string, Node<Detail>*>& regions);
+        void write(std::map<std::string, typename  Scheduler<Detail>::Region>& regions);
 
         /// Add a writer  
         void addWriter(const std::shared_ptr<INodeWriter<Detail>>& writer)

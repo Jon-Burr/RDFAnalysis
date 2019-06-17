@@ -2,6 +2,7 @@
 #define RDFAnalysis_INodeWriter_H
 
 #include "RDFAnalysis/Node.h"
+#include "RDFAnalysis/Scheduler.h"
 
 #include <string>
 
@@ -38,6 +39,23 @@ namespace RDFAnalysis {
             Node<Detail>& node,
             TDirectory* directory,
             std::size_t depth) = 0;
+
+        /**
+         * @brief Write the contents of a region to a directory.
+         * @param region The region to write
+         * @param directory The directory to write to
+         * @param depth How deep down the node structure we are.
+         *
+         * This variant is largely there so that the TObjectWriter can pick up
+         * preselections correctly...
+         */
+        virtual void write(
+            typename Scheduler<Detail>::Region& region,
+            TDirectory* directory,
+            std::size_t depth)
+        {
+          return write(*region.node, directory, depth);
+        }
     }; //> end class INodeWriter
 } //> end namespace RDFAnalysis
 

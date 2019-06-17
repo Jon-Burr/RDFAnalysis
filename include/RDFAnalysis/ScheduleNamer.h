@@ -13,10 +13,19 @@ namespace RDFAnalysis {
    * @brief Namer class to be used by the scheduler.
    *
    * This is required to recognise variables in the scheduling step.
+   * This is only used for its ability to interpret string expressions and
+   * extract the input variables from them. This means that a lot of the
+   * functions are essentially no-op.
    */
   class ScheduleNamer : public IBranchNamer {
     public:
 
+      /**
+       * @brief Create the namer by copying the list of branches from another
+       * namer.
+       *
+       * @param other The namer to copy from.
+       */
       ScheduleNamer(const IBranchNamer& other) :
         m_branches(other.branches() ),
         m_nominal("") {}

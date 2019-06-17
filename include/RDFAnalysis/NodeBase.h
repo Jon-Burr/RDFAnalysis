@@ -20,7 +20,7 @@
 
 /**
  * @file NodeBase.h
- * @brief The base class for the \ref Node classes.
+ * @brief The base class for the Node classes.
  */
 
 namespace RDFAnalysis {
@@ -28,13 +28,13 @@ namespace RDFAnalysis {
   using ColumnNames_t = ROOT::RDataFrame::ColumnNames_t;
 
   /**
-   * @brief Base class for the \ref Node classes.
+   * @brief Base class for the Node classes.
    *
-   * This class contains everything that does not depend on the \ref Detail
-   * parameter of the Node class. Many functions merely forward their calls onto
-   * the underlying ROOT::RNode objects, performing the necessary steps to allow
-   * for weights and systematics so you should consult the RDataFrame
-   * documentation for explanations of those functions.
+   * This class contains everything that does not depend on the Detail parameter
+   * of the Node class. Many functions merely forward their calls onto the
+   * underlying ROOT::RNode objects, performing the necessary steps to allow for
+   * weights and systematics so you should consult the RDataFrame documentation
+   * for explanations of those functions.
    */
   class NodeBase
   {
@@ -129,7 +129,11 @@ namespace RDFAnalysis {
        * @param WeightStrategy strategy The weight strategy to use
        *
        * Note that right now this won't work if T doesn't inherit from TH1. TODO
-       * fix this! 
+       * fix this! The method also assumes that the weight is always provided as
+       * the last input column for the RDF Fill *Action*. This is always true
+       * for types inheriting from TH1 but other objects (particularly
+       * user-defined ones) will behave differently. For these cases I will need
+       * to specialise the 'Book' action.
        */
       template <typename T>
         SysResultPtr<T> Fill(
@@ -213,7 +217,7 @@ namespace RDFAnalysis {
        *
        * Most functions on the Node classes get routed through this or one of
        * its overloads. It carries out the following operations:
-       *   -# Use \ref columns to determine which systematics affect this action
+       *   -# Use columns to determine which systematics affect this action
        *   -# Apply the action to each underlying systematic-specific RNode,
        *      even those not in the list found in the previous step
        *   -# For each remaining systematic from step 1 apply the action to the
@@ -222,8 +226,9 @@ namespace RDFAnalysis {
        * can be translated are. For information on argument translation see
        * SysVar.h
        *
-       * The first parameter of \ref f should be a ROOT::RNode&, this will be
-       * provided by this function and should not be included in \ref args.
+       * The first parameter of f should be a ROOT::RNode&, this will be
+       * provided by this function and should not be included in args, as it
+       * will provide each systematically varied ROOT::RNode in turn.
        */
       template <typename... TrArgs, typename T, typename... Args>
         std::map<std::string, T> Act(

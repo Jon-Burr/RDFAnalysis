@@ -25,6 +25,7 @@ target_sources( RDFAnalysis
       src/Helpers.cxx
       src/WeightStrategy.cxx
       src/SchedulerBase.cxx
+      src/GraphDrawer.cxx
     )
 
 target_link_libraries( RDFAnalysis

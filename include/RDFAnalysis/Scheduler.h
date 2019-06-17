@@ -5,6 +5,7 @@
 #include "RDFAnalysis/Node.h"
 #include "RDFAnalysis/SchedulerBase.h"
 #include "RDFAnalysis/ScheduleNamer.h"
+#include "RDFAnalysis/Auditors/IAuditor.h"
 
 /**
  * @file Node.h
@@ -28,6 +29,8 @@ namespace RDFAnalysis {
         using detail_t = Detail;
         /// The node type
         using node_t = Node<Detail>;
+        /// The IAuditor type
+        using auditor_t = IAuditor<Detail>;
 
         Scheduler(node_t* root) : m_root(root), m_namer(root->namer() ) {}
 
@@ -39,7 +42,16 @@ namespace RDFAnalysis {
          * @brief Schedule the analysis
          * @param graphFile If set, write the schedule to this file.
          */
-        ScheduleNode schedule(const std::string& graphFile = "");
+        ScheduleNode& schedule(const std::string& graphFile = "");
+
+        /// Helper struct to define a region
+        struct Region {
+          /// The node that defines the final selection of this region
+          node_t* node;
+
+          /// The TObject fills associated with this region.
+          std::vector<SysResultPtr<TObject>> objects;
+        }; //> end struct Region
         
         /**
          * @brief Get the string->region mapping.
@@ -47,7 +59,7 @@ namespace RDFAnalysis {
          * This map is filled by the schedule function so will not be valid
          * before this has been called.
          */
-        std::map<std::string, node_t*>& regions() { return m_regions; }
+        std::map<std::string, Region>& regions() { return m_regions; }
         
         /**
          * @brief Get the string->region mapping.
@@ -55,8 +67,22 @@ namespace RDFAnalysis {
          * This map is filled by the schedule function so will not be valid
          * before this has been called.
          */
-        const std::map<std::string, node_t*>& regions() const
+        const std::map<std::string, Region>& regions() const
         { return m_regions; }
+
+        void addAuditor(std::shared_ptr<auditor_t> auditor)
+        { m_auditors.push_back(auditor); }
+
+        template <template <typename> class A, typename... Args>
+          void addAuditor(Args&&... args)
+          { m_auditors.push_back(std::make_shared<A<Detail>>(
+                std::forward<Args>(args)...) ); }
+
+        std::vector<std::shared_ptr<auditor_t>>& auditors()
+        { return m_auditors; }
+
+        const std::vector<std::shared_ptr<auditor_t>>& auditors() const
+        { return m_auditors; }
 
         /**
          * @brief Register a new variable
@@ -266,7 +292,7 @@ namespace RDFAnalysis {
          */
         void registerFillImpl(
             const std::string& name,
-            std::function<void(node_t*)> action,
+            std::function<SysResultPtr<TObject>(node_t*)> action,
             const std::set<std::string>& variables = {},
             const std::set<std::string>& filters = {});
 
@@ -296,16 +322,19 @@ namespace RDFAnalysis {
         /// The defined variables
         std::map<std::string, std::function<void(node_t*)>> m_variables;
         /// The defined fills
-        std::map<std::string, std::function<void(node_t*)>> m_fills;
+        std::map<std::string, std::function<SysResultPtr<TObject>(node_t*)>> m_fills;
         /// The root node
         node_t* m_root;
         /// The namer
         ScheduleNamer m_namer;
         /// After scheduling, pointers to the end nodes for all defined regions
         /// will be here
-        std::map<std::string, node_t*> m_regions;
+        std::map<std::string, Region> m_regions;
+        std::vector<std::shared_ptr<auditor_t>> m_auditors;
         /// Copy information across from the Schedule node to the actual node
-        void addNode(const ScheduleNode& source, node_t* target);
+        void addNode(const ScheduleNode& source, 
+                     node_t* target,
+                     const std::string& currentRegion = "");
     }; //> end class Scheduler
 } //> end namespace RDFAnalysis
 #include "RDFAnalysis/Scheduler.icc"

@@ -1,0 +1,19 @@
+#ifndef RDFAnalysis_Auditors_GraphDrawer_ICC
+#define RDFAnalysis_Auditors_GraphDrawer_ICC
+
+namespace RDFAnalysis {
+  template <typename Detail>
+    GraphDrawer<Detail>::GraphDrawer(
+        const std::string& fileName,
+        const GraphDrawerBase::Properties& properties) :
+      GraphDrawerBase(fileName, properties) {}
+
+  template <typename Detail>
+    void GraphDrawer<Detail>::auditSchedule(
+        const SchedulerBase::ScheduleNode& source)
+    {
+      printSchedule(source);
+    }
+} //> end namespace RDFAnalysis
+
+#endif //> !RDFAnalysis_Auditors_GraphDrawer_ICC

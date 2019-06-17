@@ -11,7 +11,7 @@
 namespace RDFAnalysis {
   class SchedulerBase {
     public:
-      enum ActionType {FILTER, VARIABLE, FILL};
+      enum ActionType {FILTER, VARIABLE, FILL, INVALID};
       static std::string actionTypeToString(ActionType type);
 
       struct RegionDef {
@@ -125,10 +125,13 @@ namespace RDFAnalysis {
        * list of candidates.
        * @param action The action to check for
        * @param candidates Candidates that could have satisfied it.
+       * @param considerSelf Whether or not to count action satsified if it
+       * occurs in candidates
        */
       bool isActionSatisfiedBy(
           const Action& action,
-          const std::set<Action>& candidates) const;
+          const std::set<Action>& candidates,
+          bool considerSelf = true) const;
 
       /**
        * @brief Check whether an action has already been satisfied by one of a
@@ -136,12 +139,18 @@ namespace RDFAnalysis {
        * @param action The action to check for
        * @param candidates Candidates that could have satisfied it.
        * @param[out] satisfiedBy If the action has already been satisfied, fill
-       * this reference with the name of the candidate that satisfied it
+       * this reference with the candidate that satisfied it
+       * @param considerSelf Whether or not to count action satsified if it
+       * occurs in candidates
        */
       bool isActionSatisfiedBy(
           const Action& action,
           const std::set<Action>& candidates,
-          std::string& satisfiedBy) const;
+          Action& satisfiedBy,
+          bool considerSelf = true) const;
+
+      std::map<Action, Action> buildReplacementMap(
+          const std::set<Action>& filters) const;
 
       /**
        * @brief Tell the scheduler that an action is defining multiple variables
@@ -156,9 +165,16 @@ namespace RDFAnalysis {
        * @brief Build the schedule
        * @param namer IBranchNamer that provides the list of predefined
        * variables.
-       * @return The root node of the full schedule
+       * @return A reference to the root node of the full schedule
        */
-      ScheduleNode schedule(const IBranchNamer& namer) const;
+      ScheduleNode& schedule(const IBranchNamer& namer);
+
+      /// Get the ROOT of the output schedule. Will be empty if schedule has not
+      /// been called.
+      ScheduleNode& getSchedule() { return m_schedule; }
+      /// Get the ROOT of the output schedule. Will be empty if schedule has not
+      /// been called.
+      const ScheduleNode& getSchedule() const { return m_schedule; }
 
       /**
        * @brief Build the 'raw' schedule
@@ -184,6 +200,13 @@ namespace RDFAnalysis {
       /// This can happen when a single action defines multiple variables or
       /// when one filter is necessarily tighter than another
       std::map<Action, std::set<Action>> m_satisfiedBy;
+
+      /// Keep the root node of the output schedule here
+      ScheduleNode m_schedule{{FILTER, "ROOT"}};
+
+      void expandSatisfiesRelations(
+          std::map<Action, std::set<Action>>::iterator itr,
+          std::set<Action>& processed);
   }; //> end namespace SchedulerBase
 } //> end namespace RDFAnalysis
 
