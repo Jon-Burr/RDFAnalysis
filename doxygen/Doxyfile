@@ -1,5 +1,5 @@
-# Doxyfil:qa
-#  1.8.15
+# Doxyfile
+# 1.8.15
 
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project.
@@ -39,7 +39,7 @@ PROJECT_NAME           = RDFAnalysis
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = 0.0.3
+PROJECT_NUMBER         = 0.1.0
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a
