@@ -96,9 +96,9 @@ namespace RDFAnalysis {
 
       /**
        * @brief Define several new variables on this node in a single statement.
+       * @tparam N The number of defined arguments
        * @tparam F The functor type
        * @tparam Ret_t The return type of the functor - must be a tuple
-       * @tparam N The number of defined arguments
        * @param names The names of the defined variables
        * @param f The functor
        * @param columns  The inputs to the functor
@@ -153,6 +153,10 @@ namespace RDFAnalysis {
        * @param cutflowName How the new node appears in the cutflow
        * @param weight Expression to calculate the node weight
        * @param strategy Weighting strategy for this weight
+       *
+       * TODO - right now this introduces unnecessary systematic variations -
+       * there is no way to distinguish between systematics affecting the
+       * selection and systematics affecting the weight...
        */
       template <typename F>
         std::enable_if_t<std::is_convertible<typename ROOT::TTraits::CallableTraits<F>::ret_type, bool>::value, Node*> Filter(

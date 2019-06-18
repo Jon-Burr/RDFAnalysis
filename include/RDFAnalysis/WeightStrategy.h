@@ -9,9 +9,7 @@
  */
 
 namespace RDFAnalysis {
-  enum class WeightStrategy {
     /**
-     * @enum WeightStrategy
      * @brief enum class to describe how weights are applied.
      *
      * There are two dimensions to the weighting strategy: whether the weight
@@ -32,10 +30,15 @@ namespace RDFAnalysis {
      * ~(WeightStrategy::Multiplicative | WeightStrategy::MC), however there is
      * also a WeightStrategy::Null option which describes this.
      */
-    Null = 0, /**< Helper, meaning neither multiplicative nor MC-only */
-    Multiplicative = 1 << 0, /**< Multiply by the existing weight */
-    MCOnly = 1 << 1, /**< The weight should only be applied in the MC-mode */
-    Default = Multiplicative | MCOnly /**< Default */
+  enum class WeightStrategy {
+    /// Helper, meaning neither multiplicative nor MC-only
+    Null = 0,
+    /// Multiply the weight calculated here by the existing weight
+    Multiplicative = 1 << 0,
+    /// The weight should only be applied in the MC-mode
+    MCOnly = 1 << 1,
+    /// Default
+    Default = Multiplicative | MCOnly
   }; //> end enum class WeightStrategy
 
   /// Bitwise OR of two strategies
