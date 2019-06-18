@@ -211,8 +211,8 @@ scheduler.filterSatisfies("NB_GE_2", {"NB_GE_1"});
 scheduler.filterSatisfies("NB_EQ_2", {"NB_GE_2"});
 
 // Define the fills
-scheduler.registerFill(TH1F("BJet0Pt", ";p_{T} (b-jet_{0}) [GeV], 100, 0, 500), {"BJet0Pt"});
-scheduler.registerFill(TH1F("BJet1Pt", ";p_{T} (b-jet_{1}) [GeV], 100, 0, 500), {"BJet1Pt"});
+scheduler.registerFill(TH1F("BJet0Pt", ";p_{T} (b-jet_{0}) [GeV]", 100, 0, 500), {"BJet0Pt"});
+scheduler.registerFill(TH1F("BJet1Pt", ";p_{T} (b-jet_{1}) [GeV]", 100, 0, 500), {"BJet1Pt"});
 scheduler.registerFill(TH1F("BJet0Eta", "#eta (b-jet_{0})", 10, -2.5, 2.5), {"BJet0Eta"});
 scheduler.registerFill(TH1F("BJet1Eta", "#eta (b-jet_{1})", 10, -2.5, 2.5), {"BJet1Eta"});
 scheduler.registerFill(TH1F("BJet0Phi", "#phi (b-jet_{0})", 70, -3.5, 3.5), {"BJet0Phi"});
