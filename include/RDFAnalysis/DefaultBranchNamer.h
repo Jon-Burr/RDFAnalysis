@@ -35,11 +35,11 @@ namespace RDFAnalysis {
       DefaultBranchNamer(
           const std::vector<std::string>& systematics,
           bool systNameFirst = true,
-          bool inputFromFriends = true,
+          bool inputFromFriends = false,
           const std::string& nominalName = "NOSYS") :
         m_systematics(systematics),
-        m_systNameFirst(true),
-        m_inputFromFriendTrees(true),
+        m_systNameFirst(systNameFirst),
+        m_inputFromFriendTrees(inputFromFriends),
         m_nominalName(nominalName) {}
 
       /**
