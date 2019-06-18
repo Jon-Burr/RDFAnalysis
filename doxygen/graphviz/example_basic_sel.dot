@@ -1,0 +1,13 @@
+digraph G {
+  0[label="Input" shape=diamond];
+  1[label="Require one photon" shape=diamond];
+  2[label="Require two electrons" shape=diamond];
+  3[label="Fill the di-electron mass" shape=box];
+  4[label="Require two muons" shape=diamond];
+  5[label="Fill the di-muon mass" shape=box];
+  0->1;
+  1->2;
+  2->3;
+  1->4;
+  4->5;
+}
