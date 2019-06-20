@@ -4,7 +4,6 @@
 - [Scheduler Concepts](#Scheduler_Concepts)
   - [Actions and dependencies](#Scheduler_Actions)
   - [Costs](#Scheduler_Costs)
-  - [Auditors](#Scheduler_Auditors)
   - [Filter Satisfaction](#Scheduler_FilterSatisfaction)
 - [Usage Example](#Scheduler_Usage)
 - [Advanced Example](#Schedule_AdvancedExample)
@@ -28,6 +27,10 @@ First a 'raw' schedule is constructed that merges together all the region defini
 Then, the [Scheduler] calculates the necessary order in which to insert any [dependencies](#Scheduler_Actions) before each point in the raw schedule.
 Finally, the scheduler performs the corresponding [Define], [Filter] and [Fill] calls following the calculated graph.
 
+Note that due to the lazy nature of RDataFrame Define calls, all variables are scheduled at the very start of the graph.
+Anything that depends on a variable then acquires all of that variable's dependencies.
+This ensures no variable is evaluated on an event where it is not valid.
+
 @section Scheduler_Concepts Scheduler Concepts
 @subsection Scheduler_Actions Actions and dependencies
 
@@ -40,7 +43,6 @@ Each action has both direct dependencies like these but also indirect dependenci
 The variable dependencies can usually be deduced from the structure of the call and filter dependencies are specified as extra argument at the end of the call.
 
 When building the computational graph the scheduler will add all dependencies of a particular action in before it.
-It will try to place filters as early as possible.
 This allows easy creation of a histogram with preselections, just by listing the preselection as a filter dependency.
 
 @subsection Scheduler_Costs Costs
@@ -49,13 +51,6 @@ Costs allow slightly more control over the order in which actions are scheduled.
 Lower cost actions will be scheduled earlier than higher cost actions.
 This can be used to fine-tune the output schedule.
 Normally this will not be too necessary.
-
-@subsection Scheduler_Auditors Auditors
-
-Auditors allow direct inspection of the computations being performed.
-They use the RDFAnalysis::IAuditor interface which allows inspecting the entire computational graph, and inserting extra operations before and after scheduled actions.
-Currently two auditors are defined: The RDFAnalysis::GraphDrawer which creates a graphviz represention of the entire computational graph and the RDFAnalysis::DebugPrinter that inserts print outs to stdout before and after each action.
-The [DebugPrinter](@ref RDFAnalysis::DebugPrinter) is useful because otherwise it can be extremely hard to pinpoint where in a computational graph a crash is coming from when just using RDFAnalysis::Node or ROOT::RDataFrame.
 
 @subsection Scheduler_FilterSatisfaction Filter Satisfaction
 

@@ -1,18 +1,5 @@
 digraph G {
-   0[label="ROOT"  shape=oval];
-   1[label="BJets" shape=oval];
-   2[label="BJet0" shape=oval];
-   3[label="BJet1" shape=oval];
-   4[label="BJet0Pt, BJet0Eta, BJet0Phi, BJet0Mass" shape=oval];
-   5[label="BJet1Pt, BJet1Eta, BJet1Phi, BJet1Mass" shape=oval];
-   6[label="m_bb" shape=oval];
-   7[label="BJets" shape=oval];
-   8[label="BJet0" shape=oval];
-   9[label="BJet0Pt, BJet0Eta, BJet0Phi, BJet0Mass" shape=oval];
-  10[label="BJets" shape=oval];
-  11[label="BJet1" shape=oval];
-  12[label="BJet1Pt, BJet1Eta, BJet1Phi, BJet1Mass" shape=oval];
-  13[label="m_bb" shape=oval];
+   0[label="ROOT"  shape=diamond];
   14[label="NB_GE_1" shape=diamond];
   15[label="NB_GE_2" shape=diamond];
   16[label="NB_EQ_2" shape=diamond];
@@ -31,21 +18,21 @@ digraph G {
   29[label="BJet1Phi" shape=box];
   30[label="m_bb"     shape=box];
 
-  0->16->1->2->3->4->5->6;
-  6->17;
-  6->18;
-  6->19;
-  6->20;
-  6->21;
-  6->22;
-  6->23;
-  0->14->7->8->9;
-  9->24;
-  9->26;
-  9->28;
-  0->15->10->11->12->13;
-  13->25;
-  13->27;
-  13->29;
-  13->30;
+  0->16;
+  16->17;
+  16->18;
+  16->19;
+  16->20;
+  16->21;
+  16->22;
+  16->23;
+  0->14;
+  14->24;
+  14->26;
+  14->28;
+  0->15;
+  15->25;
+  15->27;
+  15->29;
+  15->30;
 }

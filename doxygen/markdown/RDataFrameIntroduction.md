@@ -8,3 +8,7 @@ The RDataFrame makes a separation between **transformations** which take a data 
 These map exactly onto the concepts introduced before, with **defines** and **filters** the same as before and **actions** referred to as **fills**.
 
 In the RDataFrame, **filters** and **defines** can be provided either as a function and an accompanying list of arguments or as a string expression that is just-in-time (JIT) compiled by the ROOT interpreter.
+
+A nice feature of RDataFrame is that all define calls are lazy.
+This means that while they may be registered anywhere in the computational graph, they will only be evaluated where they are used.
+This means that typically there is no reason not to place all define calls at the start of the graph, so long that care is taken to ensure that they are only used where they are valid.
