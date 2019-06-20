@@ -5,7 +5,6 @@
 #include "RDFAnalysis/Node.h"
 #include "RDFAnalysis/SchedulerBase.h"
 #include "RDFAnalysis/ScheduleNamer.h"
-#include "RDFAnalysis/Auditors/IAuditor.h"
 
 /**
  * @file Node.h
@@ -29,8 +28,6 @@ namespace RDFAnalysis {
         using detail_t = Detail;
         /// The node type
         using node_t = Node<Detail>;
-        /// The IAuditor type
-        using auditor_t = IAuditor<Detail>;
 
         /**
          * @brief Create the scheduler from a node
@@ -73,31 +70,6 @@ namespace RDFAnalysis {
          */
         const std::map<std::string, Region>& regions() const
         { return m_regions; }
-
-        /// Add a new auditor
-        void addAuditor(std::shared_ptr<auditor_t> auditor)
-        { m_auditors.push_back(auditor); }
-
-        /**
-         * @brief Add a new auditor
-         * @tparam A The auditor template type
-         * @tparam Args The constructor argument types
-         * @param args The constructor arguments
-         *
-         * This version uses the correct detail type to specialise the template
-         */
-        template <template <typename> class A, typename... Args>
-          void addAuditor(Args&&... args)
-          { m_auditors.push_back(std::make_shared<A<Detail>>(
-                std::forward<Args>(args)...) ); }
-
-        /// Get the auditors
-        std::vector<std::shared_ptr<auditor_t>>& auditors()
-        { return m_auditors; }
-
-        /// (const) get the auditors
-        const std::vector<std::shared_ptr<auditor_t>>& auditors() const
-        { return m_auditors; }
 
         /**
          * @brief Register a new variable
@@ -379,8 +351,6 @@ namespace RDFAnalysis {
         /// After scheduling, pointers to the end nodes for all defined regions
         /// will be here
         std::map<std::string, Region> m_regions;
-        /// The auditors to apply
-        std::vector<std::shared_ptr<auditor_t>> m_auditors;
         /// Copy information across from the Schedule node to the actual node
         void addNode(const ScheduleNode& source, 
                      node_t* target,

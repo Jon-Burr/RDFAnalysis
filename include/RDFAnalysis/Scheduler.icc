@@ -12,8 +12,6 @@ namespace RDFAnalysis {
     {
       // Get the schedule from the base class
       ScheduleNode& rsn = SchedulerBase::schedule(root()->namer() );
-      for (std::shared_ptr<auditor_t>& auditor : m_auditors)
-        auditor->auditSchedule(rsn);
       if (!graphFile.empty() ) {
         std::ofstream of(graphFile);
         printSchedule(of, rsn);
@@ -293,8 +291,6 @@ namespace RDFAnalysis {
         node_t* target,
         const std::string& currentRegion)
     {
-      for (std::shared_ptr<auditor_t>& auditor : m_auditors)
-        auditor->preAuditNode(source, target, currentRegion);
       if (source.action.name != "ROOT") {
         // Don't copy anything across from ROOT
         switch(source.action.type) {
@@ -312,8 +308,6 @@ namespace RDFAnalysis {
             throw std::runtime_error("Invalid action scheduled!!");
         }
       }
-      for (std::shared_ptr<auditor_t>& auditor : m_auditors)
-        auditor->postAuditNode(source, target, currentRegion);
       // Does this node define a region?
       if (!source.region.empty() )
         m_regions[source.region].node = target;

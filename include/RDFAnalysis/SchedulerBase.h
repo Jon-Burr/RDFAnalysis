@@ -192,17 +192,17 @@ namespace RDFAnalysis {
        * @param root the root node of the schedule
        */
       static void printSchedule(std::ostream& os, const ScheduleNode& root);
-    protected:
 
-      /**
-       * @brief Add a new action to the record
-       * @param action The action to add
-       * @param dependencies Its dependencies
-       * @exception std::runtime_error If that type/name combination exists
-       */
-      void addAction(
-          const Action& action,
-          const std::set<Action>& dependencies);
+      /// Get the ROOT of the output filter schedule. Will be empty if schedule
+      /// has not been called.
+      ScheduleNode& getSchedule() { return m_schedule; }
+      /// Get the ROOT of the output filter schedule. Will be empty if schedule
+      /// has not been called.
+      const ScheduleNode& getSchedule() const { return m_schedule; }
+
+      /// Get the variables used by this schedule. Will be empty if schedule has
+      /// not been called.
+      const std::vector<std::string>& usedVariables() const { return m_usedVars; }
 
       /**
        * @brief Get the dependency corresponding to an action.
@@ -244,6 +244,17 @@ namespace RDFAnalysis {
           const std::set<Action>& candidates,
           Action& satisfiedBy,
           bool considerSelf = true) const;
+    protected:
+
+      /**
+       * @brief Add a new action to the record
+       * @param action The action to add
+       * @param dependencies Its dependencies
+       * @exception std::runtime_error If that type/name combination exists
+       */
+      void addAction(
+          const Action& action,
+          const std::set<Action>& dependencies);
 
       /**
        * @brief Look through a list of filters for any that satisfy each other
@@ -274,17 +285,6 @@ namespace RDFAnalysis {
        * @return A reference to the root node of the full schedule
        */
       ScheduleNode& schedule(const IBranchNamer& namer);
-
-      /// Get the ROOT of the output filter schedule. Will be empty if schedule
-      /// has not been called.
-      ScheduleNode& getSchedule() { return m_schedule; }
-      /// Get the ROOT of the output filter schedule. Will be empty if schedule
-      /// has not been called.
-      const ScheduleNode& getSchedule() const { return m_schedule; }
-
-      /// Get the variables used by this schedule. Will be empty if schedule has
-      /// not been called.
-      const std::vector<std::string>& usedVariables() const { return m_usedVars; }
 
 
       /**
