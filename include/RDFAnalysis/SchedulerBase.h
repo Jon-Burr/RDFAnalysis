@@ -275,12 +275,17 @@ namespace RDFAnalysis {
        */
       ScheduleNode& schedule(const IBranchNamer& namer);
 
-      /// Get the ROOT of the output schedule. Will be empty if schedule has not
-      /// been called.
+      /// Get the ROOT of the output filter schedule. Will be empty if schedule
+      /// has not been called.
       ScheduleNode& getSchedule() { return m_schedule; }
-      /// Get the ROOT of the output schedule. Will be empty if schedule has not
-      /// been called.
+      /// Get the ROOT of the output filter schedule. Will be empty if schedule
+      /// has not been called.
       const ScheduleNode& getSchedule() const { return m_schedule; }
+
+      /// Get the variables used by this schedule. Will be empty if schedule has
+      /// not been called.
+      const std::vector<std::string>& usedVariables() const { return m_usedVars; }
+
 
       /**
        * @brief Build the 'raw' schedule
@@ -294,7 +299,7 @@ namespace RDFAnalysis {
       void addChildren(
           std::vector<ScheduleNode>&& sources,
           ScheduleNode* target,
-          std::set<Action> preExisting) const;
+          std::set<Action> preExisting);
       /// The region definitions
       std::map<std::string, RegionDef> m_regionDefs;
 
@@ -306,8 +311,11 @@ namespace RDFAnalysis {
       /// when one filter is necessarily tighter than another
       std::map<Action, std::set<Action>> m_satisfiedBy;
 
-      /// Keep the root node of the output schedule here
+      /// Keep the root node of the output filter schedule here
       ScheduleNode m_schedule{{FILTER, "ROOT"}};
+
+      /// The variables used by this schedule
+      std::vector<std::string> m_usedVars;
 
       void expandSatisfiesRelations(
           std::map<Action, std::set<Action>>::iterator itr,

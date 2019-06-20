@@ -32,35 +32,7 @@ namespace {
         return std::make_pair(input.action.type, input.action.name);
       }
   }; //> end class ActionGraphBuilder
-  /* struct BGLVertex { */
-  /*   BGLVertex() {} */
-  /*   BGLVertex(const RDFAnalysis::SchedulerBase::Action& action) : */
-  /*     action(action.type, action.name) {} */
-  /*   vertex_t action; */
-  /* }; */
-  /* using graph_t = boost::adjacency_list< */
-  /*   boost::vecS, boost::vecS, boost::directedS, BGLVertex>; */
-  /* using vert_desc_t = boost::graph_traits<graph_t>::vertex_descriptor; */
   using prop_map_t = ActionGraphBuilder::prop_map_t;
-      /* void addToGraph( */
-  /*     const RDFAnalysis::SchedulerBase::ScheduleNode& node, */
-  /*     const vert_desc_t& parent, */
-  /*     graph_t& graph) */
-  /* { */
-  /*   vert_desc_t v = boost::add_vertex(node.action, graph); */
-  /*   boost::add_edge(parent, v, graph); */
-  /*   for (const auto& child : node.children) */
-  /*     addToGraph(child, v, graph); */
-  /* } */
-
-  /* graph_t buildGraph(const RDFAnalysis::SchedulerBase::ScheduleNode& root) */
-  /* { */
-  /*   graph_t graph; */
-  /*   vert_desc_t v = boost::add_vertex(root.action, graph); */
-  /*   for (const auto& child : root.children) */
-  /*     addToGraph(child, v, graph); */
-  /*   return graph; */
-  /* } */
 
   class ActionWriter {
     public:
@@ -469,7 +441,7 @@ namespace RDFAnalysis {
   void SchedulerBase::addChildren(
       std::vector<ScheduleNode>&& sources,
       ScheduleNode* target,
-      std::set<Action> preExisting) const
+      std::set<Action> preExisting)
   {
     // End early if there's nothing to do
     if (sources.empty() )
@@ -494,13 +466,17 @@ namespace RDFAnalysis {
     ScheduleNode* current = target;
     while (true) {
       auto itr = sources.begin();
-      // if any of the sources are trying to add a variable then add it
+      // if any of the sources are trying to add a variable then add it to the
+      // internal lists of variables
       for (; itr != sources.end(); ++itr) {
         Action toAdd = itr->next();
         if (toAdd.type == VARIABLE) {
-          current->children.emplace_back(toAdd);
-          current = &current->children.back();
-          preExisting.insert(toAdd);
+          if (std::find(m_usedVars.begin(),
+                        m_usedVars.end(),
+                        toAdd.name) == m_usedVars.end() ) {
+            m_usedVars.push_back(toAdd.name);
+            preExisting.insert(toAdd);
+          }
           for (ScheduleNode& source : sources) {
             source.removeDependency(toAdd, *this);
           }
@@ -513,7 +489,7 @@ namespace RDFAnalysis {
     }
     // When we've reached this point it's guaranteed that every source is trying
     // to add a filter/fill next.
-    // The next step is to group them by the filter they're trying to add
+    // The next step is to group them by the action they're trying to add
     std::map<Action, std::vector<ScheduleNode>> grouped;
     for (ScheduleNode& node : sources)
       grouped[node.next()].push_back(std::move(node) );

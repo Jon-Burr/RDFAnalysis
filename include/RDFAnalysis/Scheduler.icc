@@ -18,6 +18,9 @@ namespace RDFAnalysis {
         std::ofstream of(graphFile);
         printSchedule(of, rsn);
       }
+      // Sequence the variables
+      for (const std::string& var : usedVariables() )
+        m_variables.at(var)(root() );
       addNode(rsn, root() );
       return rsn;
     }
@@ -281,7 +284,7 @@ namespace RDFAnalysis {
           [model, columns, weight, strategy] (node_t* node) -> SysResultPtr<TObject>
           { return node->Fill(model, columns, weight, strategy); },
           {columns.begin(), columns.end()},
-          filters);
+         filters);
     }
 
   template <typename Detail>
