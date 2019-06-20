@@ -204,16 +204,20 @@ namespace RDFAnalysis {
       // Here I assume that I can add a weight by just appending it to list of
       // input columns...
       ColumnNames_t newColumns = columns;
-      if (!weight.empty() && (!(strategy & WeightStrategy::MCOnly) || isMC() ) ) {
-        if (!!(strategy & WeightStrategy::Multiplicative) && !getWeight().empty() ) {
-          // We need to create a new weight branch from the product of this and
-          // the existing weight
-          std::string newWeight = uniqueBranchName("HistWeight");
-          Define(newWeight, weight + " * " + getWeight() );
-          newColumns.push_back(newWeight);
+      if (isMC() || !(strategy & WeightStrategy::MCOnly) ) {
+        if (!weight.empty() ) {
+          if (!!(strategy & WeightStrategy::Multiplicative) && !getWeight().empty() ) {
+            // We need to create a new weight branch from the product of this and
+            // the existing weight
+            std::string newWeight = uniqueBranchName("HistWeight");
+            Define(newWeight, weight + " * " + getWeight() );
+            newColumns.push_back(newWeight);
+          }
+          else
+            newColumns.push_back(weight);
         }
-        else
-          newColumns.push_back(weight);
+        else if (!getWeight().empty() )
+          newColumns.push_back(getWeight() );
       }
       // Create the result pointer
       SysResultPtr<T> result = ActResult(
