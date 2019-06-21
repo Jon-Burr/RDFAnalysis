@@ -8,15 +8,15 @@
 namespace {
 
 
-  using vertex_t = std::pair<RDFAnalysis::SchedulerBase::ActionType, std::string>;
+  using action_t = std::pair<RDFAnalysis::SchedulerBase::ActionType, std::string>;
   class ActionGraphBuilder : public RDFAnalysis::detail::BoostGraphBuilder<
                               const RDFAnalysis::SchedulerBase::ScheduleNode&,
-                              vertex_t>
+                              action_t>
   {
     public:
       using base_t = RDFAnalysis::detail::BoostGraphBuilder<
         const RDFAnalysis::SchedulerBase::ScheduleNode&,
-        vertex_t>;
+        action_t>;
       using input_node_t = typename base_t::input_node_t;
       using vertex_info_t = typename base_t::vertex_info_t;
       using graph_t = typename base_t::graph_t;
