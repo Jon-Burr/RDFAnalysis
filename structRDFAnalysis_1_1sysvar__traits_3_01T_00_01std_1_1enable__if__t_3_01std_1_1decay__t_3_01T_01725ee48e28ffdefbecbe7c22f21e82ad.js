@@ -1,0 +1,4 @@
+var structRDFAnalysis_1_1sysvar__traits_3_01T_00_01std_1_1enable__if__t_3_01std_1_1decay__t_3_01T_01725ee48e28ffdefbecbe7c22f21e82ad =
+[
+    [ "value_type", "structRDFAnalysis_1_1sysvar__traits_3_01T_00_01std_1_1enable__if__t_3_01std_1_1decay__t_3_01T_01725ee48e28ffdefbecbe7c22f21e82ad.html#a14352e800f20f7ebebf345f82c941f7a", null ]
+];
